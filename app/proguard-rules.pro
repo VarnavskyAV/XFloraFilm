@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Rules for Kinopoisk API models
+-keep class com.alaka_ala.florafilm.ui.utils.kinopoisk.models.** { *; }
+-keep public class com.alaka_ala.florafilm.ui.utils.kinopoisk.models.**
+-keepattributes *Annotation*, Signature

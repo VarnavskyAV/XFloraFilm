@@ -10,12 +10,26 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.alaka_ala.florafilm.R;
+import com.alaka_ala.florafilm.databinding.FragmentHomeBinding;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.KinopoiskApiClient;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmDetails;
 
 public class HomeFragment extends Fragment {
+    private FragmentHomeBinding binding;
+    private KinopoiskApiClient kinopoiskApi;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_home, container, false);
+        binding = FragmentHomeBinding.inflate(inflater, container, false);
+        kinopoiskApi = KinopoiskApiClient.getInstance();
+
+
+
+
+
+
+
+        return binding.getRoot();
     }
 }
