@@ -14,7 +14,7 @@ public class FilmItem extends BaseModel {
     private Integer kinopoiskId;
     
     @SerializedName("imdbId")
-    private Integer imdbId;
+    private String imdbId;
     
     @SerializedName("nameRu")
     private String nameRu;
@@ -72,8 +72,8 @@ public class FilmItem extends BaseModel {
         return safeInt(kinopoiskId);
     }
     
-    public int getImdbId() {
-        return safeInt(imdbId);
+    public String getImdbId() {
+        return safeString(imdbId);
     }
     
     public String getNameRu() {
@@ -141,8 +141,8 @@ public class FilmItem extends BaseModel {
         this.kinopoiskId = kinopoiskId;
     }
     
-    public void setImdbId(Integer imdbId) {
-        this.imdbId = imdbId;
+    public void setImdbId(String imdbId) {
+        this.imdbId = safeString(imdbId);
     }
     
     public void setNameRu(String nameRu) {

@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">FloraFilmX</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="torrent_section_title">Раздел для торрентов</string>
+    <string name="video_section_title">Раздел для видео</string>
+    <string name="film_poster_description">Film poster</string>
+    <string name="back_button_description">Back button</string>
 </resources>

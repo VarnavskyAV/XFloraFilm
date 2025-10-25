@@ -2,6 +2,7 @@ package com.alaka_ala.florafilm.ui.utils.kinopoisk;
 
 import androidx.annotation.NonNull;
 
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.constants.Constants;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -29,35 +30,7 @@ public class KinopoiskApiClient {
     private final Gson gson;
     private final String apiKey;
 
-    /**
-     * Перечисление доступных типов коллекций фильмов.
-     */
-    public enum FilmCollectionType {
-        TOP_POPULAR_ALL("TOP_POPULAR_ALL"),
-        TOP_POPULAR_MOVIES("TOP_POPULAR_MOVIES"),
-        TOP_250_TV_SHOWS("TOP_250_TV_SHOWS"),
-        TOP_250_MOVIES("TOP_250_MOVIES"),
-        VAMPIRE_THEME("VAMPIRE_THEME"),
-        COMICS_THEME("COMICS_THEME"),
-        CLOSES_RELEASES("CLOSES_RELEASES"),
-        FAMILY("FAMILY"),
-        OSKAR_WINNERS_2021("OSKAR_WINNERS_2021"),
-        LOVE_THEME("LOVE_THEME"),
-        ZOMBIE_THEME("ZOMBIE_THEME"),
-        CATASTROPHE_THEME("CATASTROPHE_THEME"),
-        KIDS_ANIMATION_THEME("KIDS_ANIMATION_THEME"),
-        POPULAR_SERIES("POPULAR_SERIES");
 
-        private final String apiValue;
-
-        FilmCollectionType(String apiValue) {
-            this.apiValue = apiValue;
-        }
-
-        public String getApiValue() {
-            return apiValue;
-        }
-    }
 
     private static String getInternalApiKey() {
         // Ключ \"920aaf6a-9f64-46f7-bda7-209fb1069440\", записанный задом наперед.
@@ -155,13 +128,26 @@ public class KinopoiskApiClient {
 
     /**
      * Получает указанную коллекцию фильмов.
-     * @param type Тип коллекции (из FilmCollectionType).
+     * @param type Тип коллекции (из FilmCollectionType) -> {@link Constants.FilmCollectionType}.
      * @param page Номер страницы.
      * @param callback Колбэк для обработки результата.
      */
-    public void getFilmCollection(FilmCollectionType type, int page, ApiCallback<FilmCollection> callback) {
-        String url = BASE_URL + "v2.2/films/collections?type=" + type.getApiValue() + "&page=" + page;
-        makeRequest(url, FilmCollection.class, callback);
+    public void getFilmCollection(Constants.FilmCollectionType type, int page, ApiCallback<FilmCollection> callback) {
+        String url = BASE_URL + "v2.2/films/collections?type=" + type.getTypeName() + "&page=" + page;
+        makeRequest(url, FilmCollection.class, new ApiCallback<FilmCollection>() {
+            @Override
+            public void onSuccess(FilmCollection result) {
+                if (result != null) {
+                    result.setTitle(type.getTypeName());
+                }
+                callback.onSuccess(result);
+            }
+
+            @Override
+            public void onError(ApiException error) {
+                callback.onError(error);
+            }
+        });
     }
 
     /**

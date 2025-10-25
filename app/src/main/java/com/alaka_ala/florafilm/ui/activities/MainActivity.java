@@ -20,10 +20,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
-    /**
-     * Вызывается при создании активности.
-     * @param savedInstanceState Если активность создается заново, этот параметр содержит данные, которые она недавно предоставила в onSaveInstanceState.
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,24 +33,18 @@ public class MainActivity extends AppCompatActivity {
 
         View rootLayout = findViewById(R.id.main);
 
-        // Настройка отступов для системных панелей
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            // Применяем верхний отступ к корневому элементу, чтобы Toolbar не заезжал под статус-бар
-            // Левый, правый и нижний отступы не применяем к корневому элементу, чтобы контент был edge-to-edge
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
-            // Применяем нижний отступ к BottomNavigationView, чтобы он не перекрывался системной панелью жестов
+            // Убираем верхний отступ для rootLayout, чтобы контент мог заходить под статус-бар
+            v.setPadding(systemBars.left, 0, systemBars.right, 0);
             navView.setPadding(0, 0, 0, systemBars.bottom);
             return insets;
         });
 
-        // Настройка цвета текста статус-бара в зависимости от темы
         boolean isSystemInDarkTheme = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
         if (!isSystemInDarkTheme) {
-            // Если тема светлая, делаем иконки статус-бара темными
             WindowCompat.getInsetsController(getWindow(), rootLayout).setAppearanceLightStatusBars(true);
         } else {
-            // Если тема темная, делаем иконки статус-бара светлыми (по умолчанию)
             WindowCompat.getInsetsController(getWindow(), rootLayout).setAppearanceLightStatusBars(false);
         }
 

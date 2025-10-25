@@ -2,32 +2,27 @@ package com.alaka_ala.florafilm;
 
 import android.app.Application;
 
+import com.alaka_ala.florafilm.data.database.AppDatabase;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.KinopoiskApiClient;
 
-/**
- * Основной класс приложения для инициализации глобальных компонентов.
- */
 public class App extends Application {
 
-    /**
-     * Вызывается при создании приложения.
-     * Идеальное место для инициализации Singleton'ов.
-     */
+    private static AppDatabase appDatabase;
+
     @Override
     public void onCreate() {
         super.onCreate();
-        // Инициализируем API клиент с внутренним ключом
         KinopoiskApiClient.initialize();
+        appDatabase = AppDatabase.getDatabase(this);
     }
 
-    /**
-     * Вызывается при завершении работы приложения.
-     * Не гарантируется вызов на реальных устройствах, но является хорошей практикой.
-     */
+    public static AppDatabase getAppDatabase() {
+        return appDatabase;
+    }
+
     @Override
     public void onTerminate() {
         super.onTerminate();
-        // Освобождаем ресурсы API клиента
         KinopoiskApiClient.getInstance().close();
     }
 }
