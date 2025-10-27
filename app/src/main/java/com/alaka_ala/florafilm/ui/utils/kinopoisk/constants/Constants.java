@@ -36,6 +36,21 @@ public class Constants {
     }
 
     /**
+     * Перечисление доступных типов изображений.
+     */
+    public enum ImageType {
+        STILL,
+        SHOOTING,
+        POSTER,
+        FAN_ART,
+        PROMO,
+        CONCEPT,
+        WALLPAPER,
+        COVER,
+        SCREENSHOT
+    }
+
+    /**
      * Константы жанров
      */
     public static class Genres {
@@ -239,21 +254,6 @@ public class Constants {
         public static final int GHANA_OLD = 122;
         public static final int TOGO_OLD = 168;
         public static final int BENIN_OLD = 139;
-    }
-    
-    /**
-     * Константы типов изображений
-     */
-    public static class ImageTypes {
-        public static final String STILL = "STILL";
-        public static final String SHOOTING = "SHOOTING";
-        public static final String POSTER = "POSTER";
-        public static final String FAN_ART = "FAN_ART";
-        public static final String PROMO = "PROMO";
-        public static final String CONCEPT = "CONCEPT";
-        public static final String WALLPAPER = "WALLPAPER";
-        public static final String COVER = "COVER";
-        public static final String SCREENSHOT = "SCREENSHOT";
     }
     
     /**

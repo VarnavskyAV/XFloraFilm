@@ -16,39 +16,56 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentHomeBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.KinopoiskApiClient;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.constants.Constants;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmCollection;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmCountryOrGenresResponse;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmDetails;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmImagesResponse;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmItem;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSearchResponse;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSequelsAndPrequelsResponse;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSimilarResponse;
 import com.google.android.material.appbar.AppBarLayout;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class HomeFragment extends Fragment{
     private FragmentHomeBinding binding;
     private AppBarLayout appBarLayout;
+    private KinopoiskApiClient kinopoiskApiClient;
 
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-    }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
-        return binding.getRoot();
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
+        kinopoiskApiClient = KinopoiskApiClient.getInstance();
         if (getActivity() instanceof MainActivity) {
             appBarLayout = getActivity().findViewById(R.id.app_bar_layout);
             if (appBarLayout != null) {
                 appBarLayout.setLiftOnScrollTargetViewId(binding.collectionsRecyclerview.getId());
             }
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        return binding.getRoot();
     }
+
 
     @Override
     public void onDestroyView() {

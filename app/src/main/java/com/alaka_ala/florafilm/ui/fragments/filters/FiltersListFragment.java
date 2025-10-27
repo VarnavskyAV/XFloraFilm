@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.alaka_ala.florafilm.databinding.FragmentFiltersListBinding;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.KinopoiskApiClient;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmCountryOrGenresResponse;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
