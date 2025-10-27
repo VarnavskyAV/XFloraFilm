@@ -150,6 +150,51 @@ public class KinopoiskApiClient {
         });
     }
 
+    public void getGenreOrCountryList(ApiCallback<FilmCountryOrGenresResponse> callback) {
+        String url = BASE_URL + "v2.2/films/filters";
+        makeRequest(url, FilmCountryOrGenresResponse.class, new ApiCallback<FilmCountryOrGenresResponse>() {
+            @Override
+            public void onSuccess(FilmCountryOrGenresResponse result) {
+                callback.onSuccess(result);
+            }
+
+            @Override
+            public void onError(ApiException error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void getCollectionFromRating(double rating, int page, ApiCallback<FilmCollection> callback) {
+        String url = BASE_URL + "v2.2/films?order=RATING&type=ALL&ratingFrom=" + rating +  "&ratingTo=10&yearFrom=1000&yearTo=3000&page=" + page;
+        makeRequest(url, FilmCollection.class, new ApiCallback<FilmCollection>() {
+            @Override
+            public void onSuccess(FilmCollection result) {
+                callback.onSuccess(result);
+            }
+
+            @Override
+            public void onError(ApiException error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void getCollectionFromGenre(int idGenre, int page, ApiCallback<FilmCollection> callback) {
+        String url = BASE_URL + "v2.2/films?genres=" + idGenre + "&order=RATING&type=ALL&ratingFrom=0&ratingTo=10&yearFrom=1000&yearTo=3000&page=1";
+        makeRequest(url, FilmCollection.class, new ApiCallback<FilmCollection>() {
+            @Override
+            public void onSuccess(FilmCollection result) {
+                callback.onSuccess(result);
+            }
+
+            @Override
+            public void onError(ApiException error) {
+                callback.onError(error);
+            }
+        });
+    }
+
     /**
      * Получение фильмов по жанру
      */

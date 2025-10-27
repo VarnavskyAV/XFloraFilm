@@ -1,5 +1,9 @@
 package com.alaka_ala.florafilm.ui.utils.kinopoisk.models;
 
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+import androidx.room.TypeConverters;
+
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.ArrayList;
@@ -8,8 +12,190 @@ import java.util.ArrayList;
  * Детальная информация о фильме
  * Содержит все поля для полного описания фильма
  */
+@Entity(tableName = "films_details")
 public class FilmDetails extends BaseModel {
-    
+
+    public void setKinopoiskId(Integer kinopoiskId) {
+        this.kinopoiskId = kinopoiskId;
+    }
+
+    public void setKinopoiskHDId(String kinopoiskHDId) {
+        this.kinopoiskHDId = kinopoiskHDId;
+    }
+
+    public void setImdbId(String imdbId) {
+        this.imdbId = imdbId;
+    }
+
+    public void setNameRu(String nameRu) {
+        this.nameRu = nameRu;
+    }
+
+    public void setNameEn(String nameEn) {
+        this.nameEn = nameEn;
+    }
+
+    public void setNameOriginal(String nameOriginal) {
+        this.nameOriginal = nameOriginal;
+    }
+
+    public void setPosterUrl(String posterUrl) {
+        this.posterUrl = posterUrl;
+    }
+
+    public void setPosterUrlPreview(String posterUrlPreview) {
+        this.posterUrlPreview = posterUrlPreview;
+    }
+
+    public void setCoverUrl(String coverUrl) {
+        this.coverUrl = coverUrl;
+    }
+
+    public void setLogoUrl(String logoUrl) {
+        this.logoUrl = logoUrl;
+    }
+
+    public void setReviewsCount(Integer reviewsCount) {
+        this.reviewsCount = reviewsCount;
+    }
+
+    public void setRatingGoodReview(Integer ratingGoodReview) {
+        this.ratingGoodReview = ratingGoodReview;
+    }
+
+    public void setRatingGoodReviewVoteCount(Integer ratingGoodReviewVoteCount) {
+        this.ratingGoodReviewVoteCount = ratingGoodReviewVoteCount;
+    }
+
+    public void setRatingKinopoisk(Double ratingKinopoisk) {
+        this.ratingKinopoisk = ratingKinopoisk;
+    }
+
+    public void setRatingKinopoiskVoteCount(Integer ratingKinopoiskVoteCount) {
+        this.ratingKinopoiskVoteCount = ratingKinopoiskVoteCount;
+    }
+
+    public void setRatingImdb(Double ratingImdb) {
+        this.ratingImdb = ratingImdb;
+    }
+
+    public void setRatingImdbVoteCount(Integer ratingImdbVoteCount) {
+        this.ratingImdbVoteCount = ratingImdbVoteCount;
+    }
+
+    public void setRatingFilmCritics(Double ratingFilmCritics) {
+        this.ratingFilmCritics = ratingFilmCritics;
+    }
+
+    public void setRatingFilmCriticsVoteCount(Integer ratingFilmCriticsVoteCount) {
+        this.ratingFilmCriticsVoteCount = ratingFilmCriticsVoteCount;
+    }
+
+    public void setRatingAwait(Integer ratingAwait) {
+        this.ratingAwait = ratingAwait;
+    }
+
+    public void setRatingAwaitCount(Integer ratingAwaitCount) {
+        this.ratingAwaitCount = ratingAwaitCount;
+    }
+
+    public void setRatingRfCritics(Integer ratingRfCritics) {
+        this.ratingRfCritics = ratingRfCritics;
+    }
+
+    public void setRatingRfCriticsVoteCount(Integer ratingRfCriticsVoteCount) {
+        this.ratingRfCriticsVoteCount = ratingRfCriticsVoteCount;
+    }
+
+    public void setWebUrl(String webUrl) {
+        this.webUrl = webUrl;
+    }
+
+    public void setYear(String year) {
+        this.year = year;
+    }
+
+    public void setFilmLength(Integer filmLength) {
+        this.filmLength = filmLength;
+    }
+
+    public void setSlogan(String slogan) {
+        this.slogan = slogan;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setShortDescription(String shortDescription) {
+        this.shortDescription = shortDescription;
+    }
+
+    public void setEditorAnnotation(String editorAnnotation) {
+        this.editorAnnotation = editorAnnotation;
+    }
+
+    public void setTicketsAvailable(Boolean ticketsAvailable) {
+        isTicketsAvailable = ticketsAvailable;
+    }
+
+    public void setProductionStatus(String productionStatus) {
+        this.productionStatus = productionStatus;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setRatingMpaa(String ratingMpaa) {
+        this.ratingMpaa = ratingMpaa;
+    }
+
+    public void setRatingAgeLimits(String ratingAgeLimits) {
+        this.ratingAgeLimits = ratingAgeLimits;
+    }
+
+    public void setCountries(List<Country> countries) {
+        this.countries = countries;
+    }
+
+    public void setGenres(List<Genre> genres) {
+        this.genres = genres;
+    }
+
+    public void setStartYear(String startYear) {
+        this.startYear = startYear;
+    }
+
+    public void setEndYear(String endYear) {
+        this.endYear = endYear;
+    }
+
+    public void setSerial(Boolean serial) {
+        this.serial = serial;
+    }
+
+    public void setShortFilm(Boolean shortFilm) {
+        this.shortFilm = shortFilm;
+    }
+
+    public void setCompleted(Boolean completed) {
+        this.completed = completed;
+    }
+
+    public void setHasImax(Boolean hasImax) {
+        this.hasImax = hasImax;
+    }
+
+    public void setHas3D(Boolean has3D) {
+        this.has3D = has3D;
+    }
+
+    public void setLastSync(Boolean lastSync) {
+        this.lastSync = lastSync;
+    }
+
+    @PrimaryKey
     @SerializedName("kinopoiskId")
     private Integer kinopoiskId;
     
@@ -114,13 +300,13 @@ public class FilmDetails extends BaseModel {
     
     @SerializedName("ratingAgeLimits")
     private String ratingAgeLimits;
-    
+
     @SerializedName("countries")
     private List<Country> countries;
-    
+
     @SerializedName("genres")
     private List<Genre> genres;
-    
+
     @SerializedName("startYear")
     private String startYear;
     

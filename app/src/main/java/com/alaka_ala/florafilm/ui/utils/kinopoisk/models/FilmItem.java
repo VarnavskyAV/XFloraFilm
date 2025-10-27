@@ -1,5 +1,7 @@
 package com.alaka_ala.florafilm.ui.utils.kinopoisk.models;
 
+import android.annotation.SuppressLint;
+
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.ArrayList;
@@ -49,16 +51,16 @@ public class FilmItem extends BaseModel {
     @SerializedName("posterUrlPreview")
     private String posterUrlPreview;
     
-    @SerializedName("coverUrl")
+    //@SerializedName("coverUrl")
     private String coverUrl;
     
-    @SerializedName("logoUrl")
+    //@SerializedName("logoUrl")
     private String logoUrl;
     
-    @SerializedName("description")
+    //@SerializedName("description")
     private String description;
     
-    @SerializedName("ratingAgeLimits")
+    //@SerializedName("ratingAgeLimits")
     private String ratingAgeLimits;
     
     // Конструктор по умолчанию для Gson
@@ -224,6 +226,7 @@ public class FilmItem extends BaseModel {
         return "";
     }
     
+    @SuppressLint("DefaultLocale")
     @Override
     public String toString() {
         return String.format("FilmItem{id=%d, name='%s', year=%d, rating=%.1f}", 

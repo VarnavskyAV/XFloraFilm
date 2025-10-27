@@ -20,6 +20,9 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
+    private BottomNavigationView navView;
+    private NavController navController; // Сделаем navController полем класса
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -29,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        BottomNavigationView navView = findViewById(R.id.bottom_nav_view);
+        navView = findViewById(R.id.bottom_nav_view);
 
         View rootLayout = findViewById(R.id.main);
 
@@ -53,9 +56,39 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
-        NavController navController = navHostFragment.getNavController();
+        navController = navHostFragment.getNavController(); // Инициализируем navController
 
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(navView, navController);
+    }
+
+    /**
+     * Показывает нижнюю навигационную панель.
+     * Этот метод делает BottomNavigationView видимым.
+     */
+    public void showBottomNavigationView() {
+        if (navView != null) {
+            navView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * Скрывает нижнюю навигационную панель.
+     * Этот метод делает BottomNavigationView невидимым.
+     */
+    public void hideBottomNavigationView() {
+        if (navView != null) {
+            navView.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Обрабатывает нажатие кнопки "назад" в тулбаре.
+     * Делегирует обработку NavController для корректной навигации вверх по стеку.
+     * @return true, если событие было обработано, false в противном случае.
+     */
+    @Override
+    public boolean onSupportNavigateUp() {
+        return navController.navigateUp() || super.onSupportNavigateUp();
     }
 }

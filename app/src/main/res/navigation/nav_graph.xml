@@ -26,10 +26,19 @@
         android:name="com.alaka_ala.florafilm.ui.fragments.menu.MenuFragment"
         android:label="Menu"
         tools:layout="@layout/fragment_menu" />
-    <dialog
+    <fragment
         android:id="@+id/filmDetailsFragment"
         android:name="com.alaka_ala.florafilm.ui.fragments.filmDetails.FilmDetailsFragment"
-        android:label="fragment_film_details"
-        tools:layout="@layout/fragment_film_details" />
+        android:label="Детали"
+        tools:layout="@layout/fragment_film_details" >
+        <action
+            android:id="@+id/action_filmDetailsFragment_to_filtersListFragment"
+            app:destination="@id/filtersListFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/filtersListFragment"
+        android:name="com.alaka_ala.florafilm.ui.fragments.filters.FiltersListFragment"
+        android:label="fragment_filters_list"
+        tools:layout="@layout/fragment_filters_list" />
 
 </navigation>

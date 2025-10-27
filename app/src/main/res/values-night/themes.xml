@@ -1,8 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.FloraFilmX" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
-        <item name="IconTintBlackWhite">@color/gray</item>
+        <item name="MyGradientColor">@color/gradient_poster_color_dark</item>
+        <item name="android:statusBarColor">?attr/MyGradientColor</item>
     </style>
 </resources>

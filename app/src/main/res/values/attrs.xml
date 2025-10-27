@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <attr name="IconTintBlackWhite" format="color"/>
-
-
+    <attr name="MyGradientColor" format="color"/>
 </resources>
