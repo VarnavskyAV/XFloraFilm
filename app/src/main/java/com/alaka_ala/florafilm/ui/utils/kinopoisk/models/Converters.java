@@ -1,3 +1,4 @@
+
 package com.alaka_ala.florafilm.ui.utils.kinopoisk.models;
 
 import androidx.room.TypeConverter;
@@ -136,5 +137,57 @@ public class Converters {
     @TypeConverter
     public static String fromSearchResultFilmList(List<FilmSearchResponse.SearchResultFilm> items) {
         return gson.toJson(items);
+    }
+
+    // --- Staff Converters ---
+    @TypeConverter
+    public static List<Staff> fromStringToStaffList(String value) {
+        Type listType = new TypeToken<List<Staff>>() {}.getType();
+        return new Gson().fromJson(value, listType);
+    }
+
+    @TypeConverter
+    public static String fromStaffList(List<Staff> list) {
+        Gson gson = new Gson();
+        return gson.toJson(list);
+    }
+
+    // --- Person Converters ---
+    @TypeConverter
+    public static List<Person> fromStringToPersonList(String value) {
+        Type listType = new TypeToken<List<Person>>() {}.getType();
+        return new Gson().fromJson(value, listType);
+    }
+
+    @TypeConverter
+    public static String fromPersonList(List<Person> list) {
+        Gson gson = new Gson();
+        return gson.toJson(list);
+    }
+
+    // --- AwardItem Converters ---
+    @TypeConverter
+    public static List<AwardItem> fromStringToAwardItemList(String value) {
+        Type listType = new TypeToken<List<AwardItem>>() {}.getType();
+        return new Gson().fromJson(value, listType);
+    }
+
+    @TypeConverter
+    public static String fromAwardItemList(List<AwardItem> list) {
+        Gson gson = new Gson();
+        return gson.toJson(list);
+    }
+
+    // --- FactItem Converters ---
+    @TypeConverter
+    public static List<FactItem> fromStringToFactItemList(String value) {
+        Type listType = new TypeToken<List<FactItem>>() {}.getType();
+        return new Gson().fromJson(value, listType);
+    }
+
+    @TypeConverter
+    public static String fromFactItemList(List<FactItem> list) {
+        Gson gson = new Gson();
+        return gson.toJson(list);
     }
 }

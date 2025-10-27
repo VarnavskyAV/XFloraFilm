@@ -1,59 +1,37 @@
+
 package com.alaka_ala.florafilm.ui.utils.kinopoisk.models;
 
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+
 import com.google.gson.annotations.SerializedName;
 
-/**
- * Модель, представляющая члена съемочной группы или актера.
- * Используется как для парсинга ответа API с помощью Gson, так и для хранения в базе данных Room.
- */
 @Entity(tableName = "staff")
 public class Staff {
-    /**
-     * Уникальный идентификатор сотрудника на Кинопоиске.
-     */
     @PrimaryKey
     @SerializedName("staffId")
     private int staffId;
 
-    /**
-     * Имя на русском языке.
-     */
     @SerializedName("nameRu")
     private String nameRu;
 
-    /**
-     * Имя на английском языке.
-     */
     @SerializedName("nameEn")
     private String nameEn;
 
-    /**
-     * Описание (например, имя персонажа).
-     */
     @SerializedName("description")
     private String description;
 
-    /**
-     * URL-адрес постера.
-     */
     @SerializedName("posterUrl")
     private String posterUrl;
 
-    /**
-     * Профессия в текстовом виде (например, "Режиссеры").
-     */
     @SerializedName("professionText")
     private String professionText;
 
-    /**
-     * Ключ профессии (например, "DIRECTOR").
-     */
     @SerializedName("professionKey")
     private String professionKey;
 
-    //<editor-fold desc="Getters and Setters">
+    // Getters and setters
+
     public int getStaffId() {
         return staffId;
     }
@@ -109,5 +87,4 @@ public class Staff {
     public void setProfessionKey(String professionKey) {
         this.professionKey = professionKey;
     }
-    //</editor-fold>
 }

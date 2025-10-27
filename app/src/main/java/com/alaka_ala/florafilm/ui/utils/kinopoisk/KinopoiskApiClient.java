@@ -1,3 +1,4 @@
+
 package com.alaka_ala.florafilm.ui.utils.kinopoisk;
 
 import android.content.Context;
@@ -108,6 +109,106 @@ public class KinopoiskApiClient {
             this.code = code;
         }
         public int getCode() { return code; }
+    }
+
+    /**
+     * Выполняет поиск личностей по имени.
+     *
+     * @param name         Имя для поиска.
+     * @param page         Номер страницы для пагинации.
+     * @param forceRefresh Если true, данные будут принудительно загружены из сети, игнорируя кэш.
+     * @param callback     Колбэк для обработки результата.
+     */
+    public void searchPersonByName(String name, int page, boolean forceRefresh, ApiCallback<PersonSearchResponse> callback) {
+        String searchId = "person_" + name + "_" + page;
+        executor.execute(() -> {
+            if (!forceRefresh) {
+                PersonSearchResponse cached = database.personSearchResponseDao().getById(searchId);
+                if (cached != null && (System.currentTimeMillis() - cached.getLastUpdated()) < CACHE_DURATION_MS) {
+                    callback.onSuccess(cached);
+                    return;
+                }
+            }
+
+            String url = BASE_URL + "v1/persons?name=" + name + "&page=" + page;
+            makeRequest(url, PersonSearchResponse.class, new ApiCallback<PersonSearchResponse>() {
+                @Override
+                public void onSuccess(PersonSearchResponse result) {
+                    if (result != null) {
+                        executor.execute(() -> {
+                            result.setId(searchId);
+                            result.setLastUpdated(System.currentTimeMillis());
+                            database.personSearchResponseDao().insert(result);
+                            callback.onSuccess(result);
+                        });
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                }
+
+                @Override
+                public void onError(ApiException error) {
+                    executor.execute(() -> {
+                        PersonSearchResponse cached = database.personSearchResponseDao().getById(searchId);
+                        if (cached != null) {
+                            callback.onSuccess(cached);
+                        } else {
+                            callback.onError(error);
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    /**
+     * Получает список актеров и съемочной группы для фильма.
+     * @param kinopoiskId ID фильма на Кинопоиске.
+     * @param forceRefresh Если true, данные будут принудительно загружены из сети, игнорируя кэш.
+     * @param callback Колбэк для обработки результата.
+     */
+    public void getStaff(int kinopoiskId, boolean forceRefresh, ApiCallback<List<Staff>> callback) {
+        String staffId = "staff_" + kinopoiskId;
+        executor.execute(() -> {
+            if (!forceRefresh) {
+                StaffResponse cached = database.staffDao().getById(staffId);
+                if (cached != null && (System.currentTimeMillis() - cached.getLastUpdated()) < CACHE_DURATION_MS) {
+                    callback.onSuccess(cached.getItems());
+                    return;
+                }
+            }
+
+            String url = BASE_URL + "v1/staff?filmId=" + kinopoiskId;
+            makeRequest(url, new TypeToken<List<Staff>>() {}.getType(), new ApiCallback<List<Staff>>() {
+                @Override
+                public void onSuccess(List<Staff> result) {
+                    if (result != null) {
+                        executor.execute(() -> {
+                            StaffResponse response = new StaffResponse();
+                            response.setId(staffId);
+                            response.setItems(result);
+                            response.setLastUpdated(System.currentTimeMillis());
+                            database.staffDao().insert(response);
+                            callback.onSuccess(result);
+                        });
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                }
+
+                @Override
+                public void onError(ApiException error) {
+                    executor.execute(() -> {
+                        StaffResponse cached = database.staffDao().getById(staffId);
+                        if (cached != null) {
+                            callback.onSuccess(cached.getItems());
+                        } else {
+                            callback.onError(error);
+                        }
+                    });
+                }
+            });
+        });
     }
 
     /**
@@ -439,7 +540,54 @@ public class KinopoiskApiClient {
     }
 
 
+    /**
+     * Получает список фактов и ошибок в фильме.
+     *
+     * @param kinopoiskId  ID фильма на Кинопоиске.
+     * @param forceRefresh Если true, данные будут принудительно загружены из сети, игнорируя кэш.
+     * @param callback     Колбэк для обработки результата.
+     */
+    public void getFilmFacts(int kinopoiskId, boolean forceRefresh, ApiCallback<FilmFactsResponse> callback) {
+        String factsId = "facts_" + kinopoiskId;
+        executor.execute(() -> {
+            if (!forceRefresh) {
+                FilmFactsResponse cached = database.filmFactsResponseDao().getById(factsId);
+                if (cached != null && (System.currentTimeMillis() - cached.getLastUpdated()) < CACHE_DURATION_MS) {
+                    callback.onSuccess(cached);
+                    return;
+                }
+            }
 
+            String url = BASE_URL + "v2.2/films/" + kinopoiskId + "/facts";
+            makeRequest(url, FilmFactsResponse.class, new ApiCallback<FilmFactsResponse>() {
+                @Override
+                public void onSuccess(FilmFactsResponse result) {
+                    if (result != null) {
+                        executor.execute(() -> {
+                            result.setId(factsId);
+                            result.setLastUpdated(System.currentTimeMillis());
+                            database.filmFactsResponseDao().insert(result);
+                            callback.onSuccess(result);
+                        });
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                }
+
+                @Override
+                public void onError(ApiException error) {
+                    executor.execute(() -> {
+                        FilmFactsResponse cached = database.filmFactsResponseDao().getById(factsId);
+                        if (cached != null) {
+                            callback.onSuccess(cached);
+                        } else {
+                            callback.onError(error);
+                        }
+                    });
+                }
+            });
+        });
+    }
 
 
 

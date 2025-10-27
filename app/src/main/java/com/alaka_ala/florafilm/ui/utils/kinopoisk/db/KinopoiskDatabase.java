@@ -1,3 +1,4 @@
+
 package com.alaka_ala.florafilm.ui.utils.kinopoisk.db;
 
 import android.content.Context;
@@ -6,19 +7,12 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmCollection;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmCountryOrGenresResponse;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmDetails;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmImagesResponse;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSearchResponse;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSequelsAndPrequelsResponse;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSimilarResponse;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.Converters;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.*;
 
 /**
  * The Room database for caching Kinopoisk API responses.
  */
-@Database(entities = {FilmCollection.class, FilmCountryOrGenresResponse.class, FilmDetails.class, FilmSimilarResponse.class, FilmImagesResponse.class, FilmSequelsAndPrequelsResponse.class, FilmSearchResponse.class}, version = 5, exportSchema = false)
+@Database(entities = {FilmCollection.class, FilmCountryOrGenresResponse.class, FilmDetails.class, FilmSimilarResponse.class, FilmImagesResponse.class, FilmSequelsAndPrequelsResponse.class, FilmSearchResponse.class, Staff.class, StaffResponse.class, Person.class, PersonSearchResponse.class, FilmAwardsResponse.class, FilmFactsResponse.class}, version = 10, exportSchema = false)
 @TypeConverters({Converters.class})
 public abstract class KinopoiskDatabase extends RoomDatabase {
 
@@ -29,6 +23,10 @@ public abstract class KinopoiskDatabase extends RoomDatabase {
     public abstract FilmImagesResponseDao filmImagesResponseDao();
     public abstract FilmSequelsAndPrequelsResponseDao filmSequelsAndPrequelsResponseDao();
     public abstract FilmSearchResponseDao filmSearchResponseDao();
+    public abstract StaffDao staffDao();
+    public abstract PersonSearchResponseDao personSearchResponseDao();
+    public abstract FilmAwardsResponseDao filmAwardsResponseDao();
+    public abstract FilmFactsResponseDao filmFactsResponseDao();
 
     private static volatile KinopoiskDatabase INSTANCE;
 

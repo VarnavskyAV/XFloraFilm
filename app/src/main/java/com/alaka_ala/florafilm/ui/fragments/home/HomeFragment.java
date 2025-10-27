@@ -26,6 +26,7 @@ import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmItem;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSearchResponse;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSequelsAndPrequelsResponse;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSimilarResponse;
+import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.Staff;
 import com.google.android.material.appbar.AppBarLayout;
 
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ public class HomeFragment extends Fragment{
                 appBarLayout.setLiftOnScrollTargetViewId(binding.collectionsRecyclerview.getId());
             }
         }
+
 
 
 
