@@ -1,6 +1,7 @@
 
 package com.alaka_ala.florafilm.ui.utils.kinopoisk.models;
 
+import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.TypeConverters;
@@ -13,6 +14,7 @@ import java.util.List;
 @TypeConverters(Converters.class)
 public class FilmAwardsResponse {
     @PrimaryKey(autoGenerate = false)
+    @NonNull
     private String id;
 
     @SerializedName("total")

@@ -1,5 +1,4 @@
-
-package com.alaka_ala.florafilm.ui.utils.kinopoisk.models;
+package com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;

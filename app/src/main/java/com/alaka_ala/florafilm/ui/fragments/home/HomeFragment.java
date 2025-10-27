@@ -26,7 +26,8 @@ import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmItem;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSearchResponse;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSequelsAndPrequelsResponse;
 import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmSimilarResponse;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.Staff;
+import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.api.KinopoiskApiClientV2;
+import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.Staff;
 import com.google.android.material.appbar.AppBarLayout;
 
 import java.util.ArrayList;
@@ -36,7 +37,7 @@ public class HomeFragment extends Fragment{
     private FragmentHomeBinding binding;
     private AppBarLayout appBarLayout;
     private KinopoiskApiClient kinopoiskApiClient;
-
+    private KinopoiskApiClientV2 kinopoiskApiClientV2;
 
     @Nullable
     @Override
@@ -51,10 +52,18 @@ public class HomeFragment extends Fragment{
         }
 
 
+        kinopoiskApiClientV2 = KinopoiskApiClientV2.getInstance();
+        kinopoiskApiClientV2.getStaff(666, false, new KinopoiskApiClientV2.ApiCallback<List<Staff>>() {
+            @Override
+            public void onSuccess(List<Staff> result) {
 
+            }
 
+            @Override
+            public void onError(KinopoiskApiClientV2.ApiException error) {
 
-
+            }
+        });
 
 
 

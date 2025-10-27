@@ -1,0 +1,69 @@
+kinopoiskV2/
+├── constants/          # Извлеченные константы
+│   ├── FilmCollectionType.java
+│   ├── ImageType.java
+│   ├── FilmTypes.java
+│   ├── ProductionStatus.java
+│   ├── Genres.java
+│   └── Countries.java
+├── models/             # Модели с извлеченными вложенными классами
+│   ├── BaseModel.java
+│   ├── Converters.java
+│   ├── Country.java
+│   ├── Genre.java
+│   ├── AwardItem.java
+│   ├── FactItem.java
+│   ├── Person.java
+│   ├── Staff.java
+│   ├── FilmItem.java
+│   ├── FilmDetails.java
+│   ├── FilmCollection.java
+│   ├── FilmCountryOrGenresResponse.java
+│   ├── GenreResponse.java (извлечен)
+│   ├── CountryResponse.java (извлечен)
+│   ├── FilmTrailer.java
+│   ├── FilmAwardsResponse.java
+│   ├── FilmFactsResponse.java
+│   ├── FilmImagesResponse.java
+│   ├── FilmImageItem.java (извлечен)
+│   ├── FilmSearchResponse.java
+│   ├── SearchResultFilm.java (извлечен)
+│   ├── SearchCountry.java (извлечен)
+│   ├── SearchGenre.java (извлечен)
+│   ├── FilmSimilarResponse.java
+│   ├── FilmSimilarItem.java (извлечен)
+│   ├── FilmSequelsAndPrequelsResponse.java
+│   ├── FilmSequelOrPrequel.java (извлечен)
+│   ├── PersonSearchResponse.java
+│   └── StaffResponse.java
+├── db/                 # DAOs и база данных
+│   ├── KinopoiskDatabaseV2.java
+│   ├── FilmAwardsResponseDao.java
+│   ├── FilmCollectionDao.java
+│   ├── FilmCountryOrGenresResponseDao.java
+│   ├── FilmDetailsDao.java
+│   ├── FilmFactsResponseDao.java
+│   ├── FilmImagesResponseDao.java
+│   ├── FilmSearchResponseDao.java
+│   ├── FilmSequelsAndPrequelsResponseDao.java
+│   ├── FilmSimilarResponseDao.java
+│   ├── PersonSearchResponseDao.java
+│   └── StaffDao.java
+└── api/                # API клиент
+    └── KinopoiskApiClientV2.java
+
+🔧 Ключевые улучшения:
+Извлечены все вложенные статические классы в отдельные файлы для лучшей читаемости
+Разделены константы по логическим группам в отдельных файлах
+Обновлены все пакеты на kinopoiskV2
+Переименована база данных в KinopoiskDatabaseV2
+Обновлены все импорты и ссылки между классами
+Сохранена вся функциональность оригинального кода
+
+🚀 Готово к использованию:
+Все файлы портированы с обновленными пакетами
+Извлечены вложенные классы для лучшей структуры
+Константы разделены по логическим группам
+API клиент полностью функционален с новой структурой
+База данных Room настроена с новыми моделями
+Теперь у вас есть оптимизированная версия kinopoiskV2 с понятной структурой файлов, где все вложенные классы извлечены в отдельные файлы, а константы логически разделены!

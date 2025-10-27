@@ -1,0 +1,20 @@
+package com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models;
+
+import com.google.gson.annotations.SerializedName;
+
+/**
+ * Модель жанра в результатах поиска.
+ * Извлечен из FilmSearchResponse для лучшей структуры.
+ */
+public class SearchGenre {
+    @SerializedName("genre")
+    private String genre;
+
+    public String getGenre() {
+        return genre;
+    }
+
+    public void setGenre(String genre) {
+        this.genre = genre;
+    }
+}
