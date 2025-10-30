@@ -3,6 +3,8 @@ package com.alaka_ala.florafilm.ui.activities;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -23,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView navView;
     private NavController navController; // Сделаем navController полем класса
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         navView = findViewById(R.id.bottom_nav_view);
+
 
         View rootLayout = findViewById(R.id.main);
 
@@ -63,22 +67,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Показывает нижнюю навигационную панель.
-     * Этот метод делает BottomNavigationView видимым.
+     * Показывает нижнюю навигационную панель с анимацией.
+     * Этот метод делает BottomNavigationView видимым, используя анимацию slide-in.
      */
     public void showBottomNavigationView() {
-        if (navView != null) {
+        if (navView.getVisibility() == View.GONE) {
+            Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
+            navView.startAnimation(slideUp);
             navView.setVisibility(View.VISIBLE);
         }
     }
 
     /**
-     * Скрывает нижнюю навигационную панель.
-     * Этот метод делает BottomNavigationView невидимым.
+     * Скрывает нижнюю навигационную панель с анимацией.
+     * Этот метод запускает анимацию slide-out и делает BottomNavigationView невидимым после ее завершения.
      */
     public void hideBottomNavigationView() {
-        if (navView != null) {
-            navView.setVisibility(View.GONE);
+        if (navView.getVisibility() == View.VISIBLE) {
+            Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
+            slideDown.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {}
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    navView.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {}
+            });
+            navView.startAnimation(slideDown);
         }
     }
 

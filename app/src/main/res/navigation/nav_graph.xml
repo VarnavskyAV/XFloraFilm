@@ -6,23 +6,34 @@
     app:startDestination="@id/navigation_activity">
 
     <fragment
-        android:id="@id/navigation_home"
+        android:id="@+id/navigation_home"
         android:name="com.alaka_ala.florafilm.ui.fragments.home.HomeFragment"
         android:label="Home"
         tools:layout="@layout/fragment_home" >
         <action
             android:id="@+id/action_navigation_home_to_filmDetailsFragment"
-            app:destination="@id/filmDetailsFragment" />
+            app:destination="@id/filmDetailsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_navigation_home_to_filtersListFragment"
+            app:destination="@id/filtersListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
-        android:id="@id/navigation_activity"
+        android:id="@+id/navigation_activity"
         android:name="com.alaka_ala.florafilm.ui.fragments.activity.ActivityFragment"
         android:label="Activity"
         tools:layout="@layout/fragment_activity" />
 
     <fragment
-        android:id="@id/navigation_menu"
+        android:id="@+id/navigation_menu"
         android:name="com.alaka_ala.florafilm.ui.fragments.menu.MenuFragment"
         android:label="Menu"
         tools:layout="@layout/fragment_menu" />
@@ -33,12 +44,20 @@
         tools:layout="@layout/fragment_film_details" >
         <action
             android:id="@+id/action_filmDetailsFragment_to_filtersListFragment"
-            app:destination="@id/filtersListFragment" />
+            app:destination="@id/filtersListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
     <fragment
         android:id="@+id/filtersListFragment"
         android:name="com.alaka_ala.florafilm.ui.fragments.filters.FiltersListFragment"
-        android:label="fragment_filters_list"
-        tools:layout="@layout/fragment_filters_list" />
+        android:label="Фильтр"
+        tools:layout="@layout/fragment_filters_list" >
+        <action
+            android:id="@+id/action_filtersListFragment_to_filmDetailsFragment"
+            app:destination="@id/filmDetailsFragment" />
+    </fragment>
 
 </navigation>

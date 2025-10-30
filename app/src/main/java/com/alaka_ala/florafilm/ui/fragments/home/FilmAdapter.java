@@ -10,12 +10,15 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.alaka_ala.florafilm.R;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmItem;
+import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmItem;
 import com.bumptech.glide.Glide;
 
 import java.util.List;
 
 public class FilmAdapter extends RecyclerView.Adapter<FilmAdapter.FilmViewHolder> {
+
+    public static final int VIEW_TYPE_GRID = 0;
+    public static final int VIEW_TYPE_HORIZONTAL = 1;
 
     public interface OnFilmClickListener {
         void onFilmClick(FilmItem film);
@@ -23,9 +26,11 @@ public class FilmAdapter extends RecyclerView.Adapter<FilmAdapter.FilmViewHolder
 
     private List<FilmItem> films;
     private OnFilmClickListener onFilmClickListener;
+    private int viewType;
 
-    public FilmAdapter(List<FilmItem> films) {
+    public FilmAdapter(List<FilmItem> films, int viewType) {
         this.films = films;
+        this.viewType = viewType;
     }
 
     public void setFilms(List<FilmItem> films) {
@@ -33,14 +38,35 @@ public class FilmAdapter extends RecyclerView.Adapter<FilmAdapter.FilmViewHolder
         notifyDataSetChanged();
     }
 
+    /**
+     * Добавляет список фильмов к существующему списку в адаптере.
+     *
+     * @param newFilms Список новых фильмов для добавления.
+     */
+    public void addFilms(List<FilmItem> newFilms) {
+        int startPosition = films.size();
+        films.addAll(newFilms);
+        notifyItemRangeInserted(startPosition, newFilms.size());
+    }
+
     public void setOnFilmClickListener(OnFilmClickListener listener) {
         this.onFilmClickListener = listener;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return viewType;
     }
 
     @NonNull
     @Override
     public FilmViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_film, parent, false);
+        View view;
+        if (viewType == VIEW_TYPE_GRID) {
+            view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_film, parent, false);
+        } else {
+            view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_film_horizontal, parent, false);
+        }
         return new FilmViewHolder(view);
     }
 

@@ -589,6 +589,175 @@ public class KinopoiskApiClientV2 {
     }
 
     /**
+     * Перечисление для порядка сортировки фильмов в фильтре.
+     */
+    public enum FilmOrder {
+        RATING,
+        NUM_VOTE,
+        YEAR
+    }
+
+    /**
+     * Перечисление для типа контента для фильтрации.
+     */
+    public enum FilmType {
+        ALL,
+        FILM,
+        TV_SHOW,
+        VIDEO,
+        MINI_SERIES,
+        TV_SERIES
+    }
+
+    /**
+     * Получает список фильмов по жанру.
+     *
+     * @param genreId      ID жанра.
+     * @param page         Номер страницы.
+     * @param forceRefresh Принудительное обновление.
+     * @param callback     Колбэк.
+     */
+    public void getFilmsByGenre(String genreId, int page, boolean forceRefresh, ApiCallback<FilmCollection> callback) {
+        getFilmFromFilter(null, genreId, FilmOrder.RATING, FilmType.ALL, "0", "10", "1000", "3000", null, page, forceRefresh, callback);
+    }
+
+    /**
+     * Получает список фильмов по стране.
+     *
+     * @param countryId    ID страны.
+     * @param page         Номер страницы.
+     * @param forceRefresh Принудительное обновление.
+     * @param callback     Колбэк.
+     */
+    public void getFilmsByCountry(String countryId, int page, boolean forceRefresh, ApiCallback<FilmCollection> callback) {
+        getFilmFromFilter(countryId, null, FilmOrder.RATING, FilmType.ALL, "0", "10", "1000", "3000", null, page, forceRefresh, callback);
+    }
+
+    /**
+     * Получает список фильмов по году выпуска.
+     *
+     * @param year         Год выпуска.
+     * @param page         Номер страницы.
+     * @param forceRefresh Принудительное обновление.
+     * @param callback     Колбэк.
+     */
+    public void getFilmsByYear(String year, int page, boolean forceRefresh, ApiCallback<FilmCollection> callback) {
+        getFilmFromFilter(null, null, FilmOrder.RATING, FilmType.ALL, "0", "10", year, year, null, page, forceRefresh, callback);
+    }
+
+    /**
+     * Получает список фильмов по диапазону рейтинга.
+     *
+     * @param ratingFrom   Минимальный рейтинг.
+     * @param ratingTo     Максимальный рейтинг.
+     * @param page         Номер страницы.
+     * @param forceRefresh Принудительное обновление.
+     * @param callback     Колбэк.
+     */
+    public void getFilmsByRating(String ratingFrom, String ratingTo, int page, boolean forceRefresh, ApiCallback<FilmCollection> callback) {
+        getFilmFromFilter(null, null, FilmOrder.RATING, FilmType.ALL, ratingFrom, ratingTo, "1000", "3000", null, page, forceRefresh, callback);
+    }
+
+    /**
+     * Получает список фильмов по заданным фильтрам с поддержкой кэширования.
+     *
+     * @param countryId    ID страны (может быть null).
+     * @param genreId      ID жанра (может быть null).
+     * @param order        Порядок сортировки.
+     * @param type         Тип контента.
+     * @param ratingFrom   Минимальный рейтинг (0-10).
+     * @param ratingTo     Максимальный рейтинг (0-10).
+     * @param yearFrom     Год производства "от".
+     * @param yearTo       Год производства "до".
+     * @param keyword      Ключевое слово для поиска (может быть null).
+     * @param page         Номер страницы для пагинации.
+     * @param forceRefresh Если true, данные будут принудительно загружены из сети, игнорируя кэш.
+     * @param callback     Колбэк для обработки результата.
+     */
+    public void getFilmFromFilter(
+            String countryId,
+            String genreId,
+            @NonNull FilmOrder order,
+            @NonNull FilmType type,
+            String ratingFrom,
+            String ratingTo,
+            String yearFrom,
+            String yearTo,
+            String keyword,
+            int page,
+            boolean forceRefresh,
+            ApiCallback<FilmCollection> callback) {
+
+        String collectionId = "filter_" + (countryId != null ? countryId : "any") + "_" +
+                (genreId != null ? genreId : "any") + "_" + order.name() + "_" + type.name() + "_" +
+                ratingFrom + "_" + ratingTo + "_" + yearFrom + "_" + yearTo + "_" +
+                (keyword != null ? keyword.hashCode() : "none") + "_" + page;
+
+        executor.execute(() -> {
+            if (!forceRefresh) {
+                FilmCollection cached = database.filmCollectionDao().getById(collectionId);
+                if (cached != null && (System.currentTimeMillis() - cached.getLastUpdated()) < CACHE_DURATION_MS) {
+                    callback.onSuccess(cached);
+                    return;
+                }
+            }
+
+            HttpUrl.Builder urlBuilder = HttpUrl.parse(BASE_URL + "v2.2/films").newBuilder();
+            urlBuilder.addQueryParameter("page", String.valueOf(page));
+            urlBuilder.addQueryParameter("order", order.name());
+            urlBuilder.addQueryParameter("type", type.name());
+            urlBuilder.addQueryParameter("ratingFrom", String.valueOf(ratingFrom));
+            urlBuilder.addQueryParameter("ratingTo", String.valueOf(ratingTo));
+            urlBuilder.addQueryParameter("yearFrom", String.valueOf(yearFrom));
+            urlBuilder.addQueryParameter("yearTo", String.valueOf(yearTo));
+
+            if (countryId != null) {
+                urlBuilder.addQueryParameter("countries", String.valueOf(countryId));
+            }
+            if (genreId != null) {
+                urlBuilder.addQueryParameter("genres", String.valueOf(genreId));
+            }
+            if (keyword != null && !keyword.isEmpty()) {
+                urlBuilder.addQueryParameter("keyword", keyword);
+            }
+            String url = urlBuilder.build().toString();
+
+            makeRequest(url, FilmCollection.class, new ApiCallback<FilmCollection>() {
+                @Override
+                public void onSuccess(FilmCollection result) {
+                    if (result != null) {
+                        executor.execute(() -> {
+                            result.setId(collectionId);
+                            result.setTitle("Filtered Result"); // Общий заголовок для отфильтрованных результатов
+                            result.setLastUpdated(System.currentTimeMillis());
+                            database.filmCollectionDao().insert(result);
+                            callback.onSuccess(result);
+                        });
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                }
+
+                @Override
+                public void onError(ApiException error) {
+                    executor.execute(() -> {
+                        FilmCollection cached = database.filmCollectionDao().getById(collectionId);
+                        if (cached != null) {
+                            callback.onSuccess(cached);
+                        } else {
+                            callback.onError(error);
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+
+
+
+
+    /**
      * Универсальный метод для выполнения HTTP запросов.
      * @param url URL для запроса.
      * @param responseType Тип ожидаемого ответа.

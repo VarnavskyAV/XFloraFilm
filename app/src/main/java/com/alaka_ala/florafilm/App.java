@@ -11,7 +11,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        KinopoiskApiClient.initialize(this);
+        //KinopoiskApiClient.initialize(this);
 
         KinopoiskApiClientV2.initialize(this);
 
@@ -20,6 +20,6 @@ public class App extends Application {
     @Override
     public void onTerminate() {
         super.onTerminate();
-        KinopoiskApiClient.getInstance().close();
+        KinopoiskApiClientV2.getInstance().close();
     }
 }
