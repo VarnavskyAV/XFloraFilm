@@ -3,5 +3,6 @@
     <style name="Base.Theme.FloraFilmX" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="MyGradientColor">@color/gradient_poster_color_dark</item>
         <item name="android:statusBarColor">?attr/MyGradientColor</item>
+        <item name="IconTintToolbar">@color/white</item>
     </style>
 </resources>

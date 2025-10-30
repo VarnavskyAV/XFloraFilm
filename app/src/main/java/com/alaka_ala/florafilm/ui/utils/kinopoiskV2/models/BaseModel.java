@@ -70,4 +70,12 @@ public abstract class BaseModel implements Serializable {
     protected boolean safeBoolean(Boolean value, boolean defaultValue) {
         return value != null ? value : defaultValue;
     }
+
+
+    protected long safeLong(Long value) {
+        return value != null ? value : 0L;
+    }
+
+
+
 }

@@ -119,7 +119,7 @@ public class FilmAdapter extends RecyclerView.Adapter<FilmAdapter.FilmViewHolder
             yearGenre.setText(yearGenreText);
 
             Glide.with(itemView.getContext())
-                    .load(film.getBestPoster())
+                    .load(film.getPosterUrlPreview())
                     .into(poster);
         }
     }

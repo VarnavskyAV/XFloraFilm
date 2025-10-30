@@ -315,6 +315,7 @@ public class KinopoiskApiClientV2 {
                     if (result != null) {
                         executor.execute(() -> {
                             result.setLastUpdated(System.currentTimeMillis());
+                            result.setIsView(true); // При загрузке устанавливаем true  говоря о том что страница фильма просмотрена
                             database.filmDetailsDao().insert(result);
                             callback.onSuccess(result);
                         });

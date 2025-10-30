@@ -6,6 +6,8 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmDetails;
 
+import java.util.List;
+
 /**
  * Data Access Object for the FilmDetails class.
  */
@@ -27,4 +29,11 @@ public interface FilmDetailsDao {
      */
     @Query("SELECT * FROM film_details WHERE kinopoiskId = :kinopoiskId")
     FilmDetails getById(int kinopoiskId);
+
+    @Query("SELECT * FROM film_details WHERE isView = :isView")
+    List<FilmDetails> getByView(boolean isView);
+
+    @Query("SELECT * FROM film_details WHERE isStartView = :isStartView")
+    List<FilmDetails> getByIsStartView(boolean isStartView);
+
 }

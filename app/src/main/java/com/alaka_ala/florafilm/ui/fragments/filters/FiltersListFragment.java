@@ -45,6 +45,7 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).hideBottomNavigationView();
         }
+        binding.progressBarLoadingContent.setVisibility(View.VISIBLE);
         kinopoiskApiClientV2 = KinopoiskApiClientV2.getInstance();
         setupRecyclerView();
 
@@ -122,6 +123,7 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
                                 totalPages = result.getTotalPagesCount();
                             }
                             filmAdapter.addFilms(result.getItems());
+                            binding.progressBarLoadingContent.setVisibility(View.GONE);
                             isLoading = false;
                         });
                     }
@@ -129,10 +131,12 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
 
                 @Override
                 public void onError(KinopoiskApiClientV2.ApiException error) {
+                    binding.progressBarLoadingContent.setVisibility(View.GONE);
                     isLoading = false;
                 }
             });
-        } else {
+        }
+        else {
             kinopoiskApiClientV2.getGenreOrCountryList(new KinopoiskApiClientV2.ApiCallback<FilmCountryOrGenresResponse>() {
                 @Override
                 public void onSuccess(FilmCountryOrGenresResponse result) {
@@ -145,6 +149,7 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
                                         totalPages = filmCollection.getTotalPagesCount();
                                     }
                                     filmAdapter.addFilms(filmCollection.getItems());
+                                    binding.progressBarLoadingContent.setVisibility(View.GONE);
                                     isLoading = false;
                                 });
                             }
@@ -153,6 +158,7 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
                         @Override
                         public void onError(KinopoiskApiClientV2.ApiException error) {
                             isLoading = false;
+                            binding.progressBarLoadingContent.setVisibility(View.GONE);
                             // Обработка ошибки, например, показать Toast или Snackbar
                         }
                     };
@@ -160,7 +166,7 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
                     switch (type) {
                         case "ratingKinopoisk":
                             String ratingKinopoisk = args.getString("data", "7");
-                            kinopoiskApiClientV2.getFilmsByRating(ratingKinopoisk, "10", currentPage, false, callback);
+                            kinopoiskApiClientV2.getFilmsByRating(ratingKinopoisk, ratingKinopoisk, currentPage, false, callback);
                             break;
                         case "year":
                             String year = args.getString("data", "2025");

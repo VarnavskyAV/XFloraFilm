@@ -47,15 +47,16 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:id="@+id/content_group"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:padding="16dp">
 
             <TextView
                 android:id="@+id/film_details_title"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="24sp"
                 android:textStyle="bold"
@@ -66,7 +67,7 @@
 
             <HorizontalScrollView
                 android:id="@+id/chips_scroll_view"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:scrollbars="none"
@@ -81,9 +82,16 @@
                     app:singleLine="true" />
             </HorizontalScrollView>
 
+            <Button
+                android:id="@+id/btnResumeView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Просмотр" />
+
             <TextView
                 android:id="@+id/film_details_slogan"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:textSize="14sp"
@@ -95,7 +103,7 @@
 
             <TextView
                 android:id="@+id/film_details_description_label"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="Описание:"
@@ -107,7 +115,7 @@
 
             <TextView
                 android:id="@+id/film_details_description"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:textSize="16sp"
@@ -118,7 +126,7 @@
 
             <!-- Дополнительные поля можно добавить здесь -->
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
 

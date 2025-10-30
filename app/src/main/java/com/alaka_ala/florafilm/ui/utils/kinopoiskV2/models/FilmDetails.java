@@ -152,6 +152,15 @@ public class FilmDetails extends BaseModel {
     @SerializedName("lastSync")
     private Boolean lastSync;
 
+    private boolean isView;
+
+    private boolean isStartView;
+
+    private long positionView;
+
+    private boolean isBookmark;
+
+
     public FilmDetails() {
         this.countries = new ArrayList<>();
         this.genres = new ArrayList<>();
@@ -204,6 +213,18 @@ public class FilmDetails extends BaseModel {
     public Boolean isHasImax() { return safeBoolean(hasImax); }
     public Boolean isHas3D() { return safeBoolean(has3D); }
     public Boolean isLastSync() { return safeBoolean(lastSync); }
+    // Возвращает true если пользователь хоть раз зашел на страницу
+    // описания фильма. считается фильм просмотренным(не сам фильм а его описание)и он добавлен в историю
+    // True устанавливается автоматически при загрузке данных о фильме.
+    public Boolean isView() {return safeBoolean(isView);}
+    // Возвращает true если фильм/сериал начали просматривать
+    public Boolean isStartView() {return safeBoolean(isStartView);}
+    // Позиция просмотра фильма, при просмотре фильма, позиция будет меняться плеером автоматически.
+    public Long getPositionView() {return safeLong(positionView);}
+    // Если true то фильм в закладках
+    public Boolean isBookmark() {return safeBoolean(isBookmark);}
+
+
 
     // Setters for Room
     public void setKinopoiskId(Integer kinopoiskId) { this.kinopoiskId = kinopoiskId; }
@@ -252,6 +273,21 @@ public class FilmDetails extends BaseModel {
     public void setHasImax(Boolean hasImax) { this.hasImax = hasImax; }
     public void setHas3D(Boolean has3D) { this.has3D = has3D; }
     public void setLastSync(Boolean lastSync) { this.lastSync = lastSync; }
+    public void setIsView(Boolean isView) {
+        this.isView = isView;
+    }
+    public void setIsStartView(Boolean isStartView) {
+        this.isStartView = isStartView;
+    }
+    public void setPositionView(Long positionView) {
+        this.positionView = positionView;
+    }
+    public void setIsBookmark(Boolean isBookmark) {
+        this.isBookmark = isBookmark;
+    }
+
+
+
 
     // Helper methods
     public String getBestName() { 
@@ -273,7 +309,8 @@ public class FilmDetails extends BaseModel {
         return "";
     }
     
-    public String getFormattedDuration() { 
+    @SuppressLint("DefaultLocale")
+    public String getFormattedDuration() {
         int length = getFilmLength();
         if (length <= 0) return "";
         int hours = length / 60;
@@ -284,4 +321,13 @@ public class FilmDetails extends BaseModel {
             return String.format("%d мин", minutes);
         }
     }
+
+    @SuppressLint("DefaultLocale")
+    public String getFormattedViewPosition() {
+        int hours = (int) (positionView / 3600);
+        int minutes = (int) ((positionView % 3600) / 60);
+        int seconds = (int) (positionView % 60);
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    }
+
 }
