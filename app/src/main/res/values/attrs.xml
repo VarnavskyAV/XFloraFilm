@@ -2,4 +2,5 @@
 <resources>
     <attr name="MyGradientColor" format="color"/>
     <attr name="IconTintToolbar" format="color"/>
+    <attr name="StrokeUpdateColor" format="color"/>
 </resources>

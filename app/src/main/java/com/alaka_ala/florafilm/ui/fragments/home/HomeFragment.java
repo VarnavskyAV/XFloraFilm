@@ -46,6 +46,10 @@ public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickLis
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
+        // Показываем нижнюю навигацию при выходе из этого фрагмента.
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showBottomNavigationView();
+        }
         kinopoiskApiClientV2 = KinopoiskApiClientV2.getInstance();
 
         if (getActivity() instanceof MainActivity) {
@@ -71,11 +75,6 @@ public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickLis
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        // Показываем нижнюю навигацию при выходе из этого фрагмента.
-        if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).showBottomNavigationView();
-        }
-
         if (filmCollectionItems.isEmpty()) {
             loadFilmCollections();
         }
@@ -113,8 +112,8 @@ public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickLis
 
     private void loadFilmCollections() {
         filmCollectionTypeQueue.add(FilmCollectionType.TOP_POPULAR_ALL);
-        filmCollectionTypeQueue.add(FilmCollectionType.TOP_POPULAR_MOVIES);
         filmCollectionTypeQueue.add(FilmCollectionType.POPULAR_SERIES);
+        filmCollectionTypeQueue.add(FilmCollectionType.TOP_POPULAR_MOVIES);
 
         // Add other collections to the queue
         for (FilmCollectionType type : FilmCollectionType.values()) {
@@ -145,8 +144,11 @@ public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickLis
                     filmCollectionItems.add(new FilmCollectionAdapter.FilmCollectionItem(type.name(), result));
                     filmCollectionAdapter.notifyItemInserted(filmCollectionItems.size() - 1);
                     if (mainRecyclerViewState != null) {
-                        binding.collectionsRecyclerview.getLayoutManager().onRestoreInstanceState(mainRecyclerViewState);
-                        mainRecyclerViewState = null;
+                        // TODO: Почему то иногда здесь крашит. Хз почему. Позже разберусь 02.11.25 21:00
+                        if (binding != null) {
+                            binding.collectionsRecyclerview.getLayoutManager().onRestoreInstanceState(mainRecyclerViewState);
+                            mainRecyclerViewState = null;
+                        }
                     }
                     loadNextCollection();
                 });

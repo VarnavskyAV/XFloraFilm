@@ -82,12 +82,27 @@
                     app:singleLine="true" />
             </HorizontalScrollView>
 
-            <Button
-                android:id="@+id/btnResumeView"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="Просмотр" />
+                android:layout_height="match_parent"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnResumeView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Просмотр" />
+
+                <Button
+                    android:id="@+id/button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="0"
+                    android:text="Озвучка" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/film_details_slogan"

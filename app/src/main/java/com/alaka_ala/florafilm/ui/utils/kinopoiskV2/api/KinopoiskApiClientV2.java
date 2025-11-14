@@ -304,6 +304,7 @@ public class KinopoiskApiClientV2 {
             if (!forceRefresh) {
                 FilmDetails cached = database.filmDetailsDao().getById(kinopoiskId);
                 if (cached != null && (System.currentTimeMillis() - cached.getLastUpdated()) < CACHE_DURATION_MS) {
+                    database.filmDetailsDao().updateTimeStampView(System.currentTimeMillis(), kinopoiskId);
                     callback.onSuccess(cached);
                     return;
                 }
@@ -317,6 +318,7 @@ public class KinopoiskApiClientV2 {
                             result.setLastUpdated(System.currentTimeMillis());
                             result.setIsView(true); // При загрузке устанавливаем true  говоря о том что страница фильма просмотрена
                             database.filmDetailsDao().insert(result);
+                            database.filmDetailsDao().updateTimeStampView(System.currentTimeMillis(), kinopoiskId);
                             callback.onSuccess(result);
                         });
                     } else {

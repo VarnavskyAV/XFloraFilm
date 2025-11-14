@@ -1,5 +1,6 @@
 package com.alaka_ala.florafilm.ui.fragments.filmDetails;
 
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -8,12 +9,14 @@ import androidx.navigation.Navigation;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.view.ActionProvider;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.alaka_ala.florafilm.R;
@@ -65,12 +68,15 @@ public class FilmDetailsFragment extends Fragment {
             public void onSuccess(FilmDetails result) {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     populateViews(result);
-                    binding.btnResumeView.setVisibility(result.isStartView() ? View.VISIBLE : View.GONE);
-                    binding.btnResumeView.setText(result.isStartView() ? "Просмотр": "Прод. " + result.getFormattedViewPosition() + " мин."  );
+                    boolean isStartView = filmDetails.isStartView();
+                    binding.btnResumeView.setText(isStartView ? "Прод. " + result.getFormattedViewPosition() + " мин." : "Просмотр");
                     binding.progressBar.setVisibility(View.GONE);
                     binding.contentGroup.setVisibility(View.VISIBLE);
                     binding.appBarLayout.setVisibility(View.VISIBLE);
                     binding.nstdScrollView.setVisibility(View.VISIBLE);
+                    if (getActivity() != null) {
+                        getActivity().invalidateOptionsMenu(); // Перерисовываем меню
+                    }
                 });
             }
 
@@ -79,6 +85,9 @@ public class FilmDetailsFragment extends Fragment {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     binding.progressBar.setVisibility(View.GONE);
                     Toast.makeText(getContext(), "Ошибка загрузки данных", Toast.LENGTH_SHORT).show();
+                    if (getActivity() != null) {
+                        getActivity().invalidateOptionsMenu(); // Перерисовываем меню
+                    }
                 });
             }
         });
@@ -95,7 +104,7 @@ public class FilmDetailsFragment extends Fragment {
      */
     private void populateViews(FilmDetails film) {
         this.filmDetails = film;
-        setHasOptionsMenu(true);
+        setHasOptionsMenu(true); // Включаем меню для этого фрагмента
         // Загружаем постер
         if (film.getBestPoster() != null && !film.getBestPoster().isEmpty()) {
             Glide.with(binding.getRoot()).load(film.getBestPoster()).into(binding.filmDetailsPoster);
@@ -198,26 +207,33 @@ public class FilmDetailsFragment extends Fragment {
         }
     }
 
+    /**
+     * Создает меню параметров в панели действий.
+     * Если данные о фильме еще загружаются, показывает ProgressBar.
+     * После загрузки данных показывает опцию добавления/удаления из избранного.
+     *
+     * @param menu     Меню, в которое будут добавлены элементы.
+     * @param inflater Инфлейтер для меню.
+     */
     @Override
     public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
+        menu.clear(); // Очищаем меню перед добавлением новых элементов
+        // Показываем опцию добавления/удаления из избранного после загрузки данных
         if (filmDetails.isBookmark()) {
-            menu.add("Удалить из избраного").setIcon(R.drawable.heart_filled).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            menu.add("Удалить из избраного").setIcon(R.drawable.bookmark_added).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
         } else {
-            menu.add("Добавить в избранное").setIcon(R.drawable.heart_unfilled).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            menu.add("Добавить в избранное").setIcon(R.drawable.bookmark_add).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
+
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if(item.getTitle().equals("Добавить в избранное")) {
-            if (filmDetails.isBookmark()) {
-                filmDetails.setIsBookmark(false);
-                item.setIcon(R.drawable.heart_unfilled);
-            } else {
-                filmDetails.setIsBookmark(true);
-                item.setIcon(R.drawable.heart_filled);
-            }
+        if (item.getTitle().equals("Добавить в избранное")) {
+            item.setTitle("Удалить из избраного");
+            filmDetails.setIsBookmark(true);
+            item.setIcon(R.drawable.bookmark_added);
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -225,8 +241,25 @@ public class FilmDetailsFragment extends Fragment {
                 }
             });
 
+        } else if (item.getTitle().equals("Удалить из избраного")) {
+            item.setTitle("Добавить в избранное");
+            filmDetails.setIsBookmark(false);
+            item.setIcon(R.drawable.bookmark_add);
+            executorService.execute(new Runnable() {
+                @Override
+                public void run() {
+                    filmDetailsDao.insert(filmDetails);
+                }
+            });
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        executorService.close();
+        binding = null;
     }
 }

@@ -1,6 +1,8 @@
 package com.alaka_ala.florafilm.ui.fragments.filters;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,88 +11,132 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.Observer;
+import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentFiltersListBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
+import com.alaka_ala.florafilm.ui.fragments.activity.HistoryViewAdapter;
 import com.alaka_ala.florafilm.ui.fragments.home.FilmAdapter;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.api.KinopoiskApiClientV2;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.constants.FilmCollectionType;
+import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.db.FilmDetailsDao;
+import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.db.KinopoiskDatabaseV2;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.CountryResponse;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmCollection;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmCountryOrGenresResponse;
+import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmDetails;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmItem;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.Genre;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.GenreResponse;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmClickListener{
+/**
+ * Фрагмент для отображения списков фильмов по различным фильтрам.
+ */
+public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmClickListener, HistoryViewAdapter.OnItemClickListener {
+
+    private static final Set<String> VALID_TYPES = new HashSet<>(Arrays.asList(
+            "ratingKinopoisk", "ratingImdb", "year", "genre", "country",
+            "collection", "bookmark", "history", "resume"
+    ));
+
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
+
     private FragmentFiltersListBinding binding;
     private KinopoiskApiClientV2 kinopoiskApiClientV2;
-    private RecyclerView rvFilterList;
     private FilmAdapter filmAdapter;
+    private HistoryViewAdapter historyAdapter;
+    private FilmDetailsDao filmDetailsDao;
+
     private int currentPage = 1;
-    private int totalPages = -1; // Инициализируем -1, чтобы сделать первый запрос
+    private int totalPages = -1;
     private boolean isLoading = false;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentFiltersListBinding.inflate(inflater, container, false);
-        // скрываем нижнюю навигацию при выходе из этого фрагмента.
+        return binding.getRoot();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        filmDetailsDao = KinopoiskDatabaseV2.getDatabase(getContext()).filmDetailsDao();
+        kinopoiskApiClientV2 = KinopoiskApiClientV2.getInstance();
+
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).hideBottomNavigationView();
         }
+
         binding.progressBarLoadingContent.setVisibility(View.VISIBLE);
-        kinopoiskApiClientV2 = KinopoiskApiClientV2.getInstance();
-        setupRecyclerView();
 
         Bundle args = getArguments();
         if (args != null) {
             String type = args.getString("type", "");
             if (isTypeValid(type)) {
-                fetchFilms(type, args);
+                setupRecyclerView(type);
+                fetchData(type, args);
             }
         }
+    }
 
-        return binding.getRoot();
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null; // Предотвращение утечек памяти
     }
 
     /**
-     * Настраивает RecyclerView, включая LayoutManager и адаптер.
+     * Настраивает RecyclerView в зависимости от типа контента.
+     *
+     * @param type Тип контента ("collection", "bookmark", и т.д.).
      */
-    private void setupRecyclerView() {
-        rvFilterList = binding.rvFilterList;
-        GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 2, LinearLayoutManager.VERTICAL, false);
+    private void setupRecyclerView(String type) {
+        RecyclerView rvFilterList = binding.rvFilterList;
+        GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 2);
         rvFilterList.setLayoutManager(layoutManager);
-        filmAdapter = new FilmAdapter(new ArrayList<>(), FilmAdapter.VIEW_TYPE_GRID);
-        filmAdapter.setOnFilmClickListener(this);
-        rvFilterList.setAdapter(filmAdapter);
-        rvFilterList.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
 
-                int visibleItemCount = layoutManager.getChildCount();
-                int totalItemCount = layoutManager.getItemCount();
-                int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+        if ("collection".equals(type) || isApiFilteredType(type)) {
+            filmAdapter = new FilmAdapter(new ArrayList<>(), FilmAdapter.VIEW_TYPE_GRID);
+            filmAdapter.setOnFilmClickListener(this);
+            rvFilterList.setAdapter(filmAdapter);
+            rvFilterList.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                    super.onScrolled(recyclerView, dx, dy);
+                    if (!isLoading && (totalPages == -1 || currentPage < totalPages)) {
+                        int visibleItemCount = layoutManager.getChildCount();
+                        int totalItemCount = layoutManager.getItemCount();
+                        int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
 
-                if (!isLoading && (totalPages == -1 || currentPage < totalPages)) {
-                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
-                            && firstVisibleItemPosition >= 0) {
-                        loadMoreItems();
+                        if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount && firstVisibleItemPosition >= 0) {
+                            loadMoreItems();
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
+        else if (isDatabaseType(type)) {
+            historyAdapter = new HistoryViewAdapter(HistoryViewAdapter.ViewTypeItem.GRID_ADAPTIVE);
+            historyAdapter.setOnItemClickListener(this);
+            rvFilterList.setAdapter(historyAdapter);
+        }
     }
 
     /**
-     * Загружает следующую страницу фильмов.
+     * Загружает следующую страницу элементов.
      */
     private void loadMoreItems() {
         isLoading = true;
@@ -99,130 +145,239 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
         if (args != null) {
             String type = args.getString("type", "");
             if (isTypeValid(type)) {
-                fetchFilms(type, args);
+                fetchData(type, args);
             }
         }
     }
 
     /**
-     * Выполняет сетевой запрос для получения списка фильмов в зависимости от типа фильтра.
+     * Получает данные в зависимости от типа.
      *
-     * @param type Тип фильтра (например, "ratingKinopoisk", "year" и т.д.).
-     * @param args Аргументы, содержащие параметры для фильтрации.
+     * @param type Тип данных для получения.
+     * @param args Аргументы для запроса.
      */
-    private void fetchFilms(String type, Bundle args) {
-        if (type.equals("collection")) {
-            String collection = args.getString("data", "");
-            FilmCollectionType typeEnum = FilmCollectionType.valueOf(collection);
-            kinopoiskApiClientV2.getFilmCollection(typeEnum, currentPage, false, new KinopoiskApiClientV2.ApiCallback<FilmCollection>() {
-                @Override
-                public void onSuccess(FilmCollection result) {
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> {
-                            if (totalPages == -1) {
-                                totalPages = result.getTotalPagesCount();
-                            }
-                            filmAdapter.addFilms(result.getItems());
-                            binding.progressBarLoadingContent.setVisibility(View.GONE);
-                            isLoading = false;
-                        });
-                    }
-                }
-
-                @Override
-                public void onError(KinopoiskApiClientV2.ApiException error) {
-                    binding.progressBarLoadingContent.setVisibility(View.GONE);
-                    isLoading = false;
-                }
-            });
-        }
-        else {
-            kinopoiskApiClientV2.getGenreOrCountryList(new KinopoiskApiClientV2.ApiCallback<FilmCountryOrGenresResponse>() {
-                @Override
-                public void onSuccess(FilmCountryOrGenresResponse result) {
-                    KinopoiskApiClientV2.ApiCallback<FilmCollection> callback = new KinopoiskApiClientV2.ApiCallback<FilmCollection>() {
-                        @Override
-                        public void onSuccess(FilmCollection filmCollection) {
-                            if (filmCollection != null && filmCollection.getItems() != null && getActivity() != null) {
-                                getActivity().runOnUiThread(() -> {
-                                    if (totalPages == -1) {
-                                        totalPages = filmCollection.getTotalPagesCount();
-                                    }
-                                    filmAdapter.addFilms(filmCollection.getItems());
-                                    binding.progressBarLoadingContent.setVisibility(View.GONE);
-                                    isLoading = false;
-                                });
-                            }
-                        }
-
-                        @Override
-                        public void onError(KinopoiskApiClientV2.ApiException error) {
-                            isLoading = false;
-                            binding.progressBarLoadingContent.setVisibility(View.GONE);
-                            // Обработка ошибки, например, показать Toast или Snackbar
-                        }
-                    };
-
-                    switch (type) {
-                        case "ratingKinopoisk":
-                            String ratingKinopoisk = args.getString("data", "7");
-                            kinopoiskApiClientV2.getFilmsByRating(ratingKinopoisk, ratingKinopoisk, currentPage, false, callback);
-                            break;
-                        case "year":
-                            String year = args.getString("data", "2025");
-                            kinopoiskApiClientV2.getFilmsByYear(year, currentPage, false, callback);
-                            break;
-                        case "genre":
-                            String genre = args.getString("data", "1"); // Предполагается, что передается ID жанра
-                            for (GenreResponse genreResponse : result.getGenres()) {
-                                if (genreResponse.getGenre().equals(genre)) {
-                                    genre = String.valueOf(genreResponse.getId());
-                                    break;
-                                }
-                            }
-                            kinopoiskApiClientV2.getFilmsByGenre(genre, currentPage, false, callback);
-                            break;
-                        case "country":
-                            String country = args.getString("data", "1"); // Предполагается, что передается ID страны
-                            for (CountryResponse counrey : result.getCountries()) {
-                                if (counrey.getCountry().equals(country)) {
-                                    country = String.valueOf(counrey.getId());
-                                    break;
-                                }
-                            }
-                            kinopoiskApiClientV2.getFilmsByCountry(country, currentPage, false, callback);
-                            break;
-                    }
-                }
-
-                @Override
-                public void onError(KinopoiskApiClientV2.ApiException error) {
-                    isLoading = false;
-                }
-            });
+    private void fetchData(String type, Bundle args) {
+        if ("collection".equals(type)) {
+            fetchCollectionFilms(args);
+        } else if (isDatabaseType(type)) {
+            observeDataFromDb(type);
+        } else if (isApiFilteredType(type)) {
+            fetchFilteredFilms(type, args);
         }
     }
 
     /**
-     * Проверяет, является ли переданный тип фильтра допустимым.
+     * Получает коллекцию фильмов из API.
+     *
+     * @param args Аргументы, содержащие тип коллекции.
+     */
+    private void fetchCollectionFilms(Bundle args) {
+        String collection = args.getString("data", "");
+        try {
+            FilmCollectionType typeEnum = FilmCollectionType.valueOf(collection);
+            kinopoiskApiClientV2.getFilmCollection(typeEnum, currentPage, false, new FilmCollectionCallback());
+        } catch (IllegalArgumentException e) {
+            handleApiError(); // Обработка неверного типа коллекции
+        }
+    }
+
+    /**
+     * Получает отфильтрованные фильмы по жанру, стране, году или рейтингу из API.
+     *
+     * @param type Тип фильтра.
+     * @param args Аргументы для фильтрации.
+     */
+    private void fetchFilteredFilms(String type, Bundle args) {
+        kinopoiskApiClientV2.getGenreOrCountryList(new KinopoiskApiClientV2.ApiCallback<>() {
+            @Override
+            public void onSuccess(FilmCountryOrGenresResponse result) {
+                FilmCollectionCallback callback = new FilmCollectionCallback();
+                switch (type) {
+                    case "ratingKinopoisk":
+                        String rating = args.getString("data", "7");
+                        kinopoiskApiClientV2.getFilmsByRating(rating, rating, currentPage, false, callback);
+                        break;
+                    case "year":
+                        String year = args.getString("data", "2025");
+                        kinopoiskApiClientV2.getFilmsByYear(year, currentPage, false, callback);
+                        break;
+                    case "genre":
+                        String genreName = args.getString("data", "");
+                        String genreId = findGenreId(result, genreName);
+                        if (genreId != null) {
+                            kinopoiskApiClientV2.getFilmsByGenre(genreId, currentPage, false, callback);
+                        } else {
+                            handleApiError();
+                        }
+                        break;
+                    case "country":
+                        String countryName = args.getString("data", "");
+                        String countryId = findCountryId(result, countryName);
+                        if (countryId != null) {
+                            kinopoiskApiClientV2.getFilmsByCountry(countryId, currentPage, false, callback);
+                        } else {
+                            handleApiError();
+                        }
+                        break;
+                }
+            }
+
+            @Override
+            public void onError(KinopoiskApiClientV2.ApiException error) {
+                handleApiError();
+            }
+        });
+    }
+
+    /**
+     * Начинает наблюдение за данными из базы данных.
+     *
+     * @param type Тип данных для наблюдения.
+     */
+    private void observeDataFromDb(String type) {
+        switch (type) {
+            case "history":
+                filmDetailsDao.getByView().observe(getViewLifecycleOwner(), filmDetails -> {
+                    new Handler(Looper.getMainLooper()).post(() -> historyAdapter.submitList(filmDetails));
+                });
+                break;
+            case "resume":
+                filmDetailsDao.getByIsStartView().observe(getViewLifecycleOwner(), filmDetails -> {
+                    new Handler(Looper.getMainLooper()).post(() -> historyAdapter.submitList(filmDetails));
+                });
+                break;
+            case "bookmark":
+                filmDetailsDao.getByBookmark().observe(getViewLifecycleOwner(), filmDetails -> {
+                    new Handler(Looper.getMainLooper()).post(() -> historyAdapter.submitList(filmDetails));
+                });
+                break;
+        }
+        hideLoading();
+    }
+
+    private String findGenreId(FilmCountryOrGenresResponse data, String genreName) {
+        for (GenreResponse genreResponse : data.getGenres()) {
+            if (genreResponse.getGenre().equalsIgnoreCase(genreName)) {
+                return String.valueOf(genreResponse.getId());
+            }
+        }
+        return null;
+    }
+
+    private String findCountryId(FilmCountryOrGenresResponse data, String countryName) {
+        for (CountryResponse countryResponse : data.getCountries()) {
+            if (countryResponse.getCountry().equalsIgnoreCase(countryName)) {
+                return String.valueOf(countryResponse.getId());
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Проверяет, является ли тип допустимым.
      *
      * @param type Тип для проверки.
-     * @return true, если тип допустим, иначе false.
+     * @return true, если тип допустим.
      */
     private boolean isTypeValid(String type) {
-        String[] types = new String[]{"ratingKinopoisk", "ratingImdb", "year", "genre", "country", "collection"};
-        for (String t : types) {
-            if (t.equals(type)) {
-                return true;
-            }
-        }
-        return false;
+        return VALID_TYPES.contains(type);
     }
 
+    /**
+     * Проверяет, относится ли тип к данным из локальной БД.
+     *
+     * @param type Тип для проверки.
+     * @return true, если тип относится к БД.
+     */
+    private boolean isDatabaseType(String type) {
+        return "bookmark".equals(type) || "history".equals(type) || "resume".equals(type);
+    }
+
+    /**
+     * Проверяет, относится ли тип к фильтруемым данным из API.
+     *
+     * @param type Тип для проверки.
+     * @return true, если тип относится к фильтрам API.
+     */
+    private boolean isApiFilteredType(String type) {
+        return "ratingKinopoisk".equals(type) || "year".equals(type) || "genre".equals(type) || "country".equals(type);
+    }
+
+
+    /**
+     * Скрывает индикатор загрузки и устанавливает isLoading в false.
+     */
+    private void hideLoading() {
+        if (binding != null) {
+            binding.progressBarLoadingContent.setVisibility(View.GONE);
+        }
+        isLoading = false;
+    }
+
+    /**
+     * Обрабатывает ошибки API.
+     */
+    private void handleApiError() {
+        if (getActivity() != null) {
+            requireActivity().runOnUiThread(this::hideLoading);
+            // Здесь можно добавить логику для отображения сообщения об ошибке, например, через Snackbar
+        }
+    }
+
+    /**
+     * Осуществляет переход к деталям фильма.
+     *
+     * @param kinopoiskId ID фильма на Кинопоиске.
+     */
+    private void navigateToFilmDetails(int kinopoiskId) {
+        if (binding == null) return;
+        Bundle bundle = new Bundle();
+        bundle.putInt("kinopoiskId", kinopoiskId);
+        NavController navController = Navigation.findNavController(binding.getRoot());
+        navController.navigate(R.id.action_filtersListFragment_to_filmDetailsFragment, bundle);
+    }
+
+    /**
+     * Вызывается при клике на фильм в списке (FilmAdapter).
+     *
+     * @param film Объект FilmItem.
+     */
     @Override
     public void onFilmClick(FilmItem film) {
-        Bundle bundle = new Bundle();
-        bundle.putInt("kinopoiskId", film.getKinopoiskId());
-        Navigation.findNavController(binding.getRoot()).navigate(R.id.action_filtersListFragment_to_filmDetailsFragment, bundle);
+        navigateToFilmDetails(film.getKinopoiskId());
+    }
+
+    /**
+     * Вызывается при клике на фильм в списке (HistoryViewAdapter).
+     *
+     * @param film Объект FilmDetails.
+     */
+    @Override
+    public void onItemClick(FilmDetails film) {
+        navigateToFilmDetails(film.getKinopoiskId());
+    }
+
+    /**
+     * Внутренний класс для обработки ответов от API при запросе коллекций фильмов.
+     */
+    private class FilmCollectionCallback implements KinopoiskApiClientV2.ApiCallback<FilmCollection> {
+        @Override
+        public void onSuccess(FilmCollection result) {
+            if (getActivity() == null) return;
+            requireActivity().runOnUiThread(() -> {
+                if (totalPages == -1) {
+                    totalPages = result.getTotalPagesCount();
+                }
+                if (filmAdapter != null) {
+                    filmAdapter.addFilms(result.getItems());
+                }
+                hideLoading();
+            });
+        }
+
+        @Override
+        public void onError(KinopoiskApiClientV2.ApiException error) {
+            handleApiError();
+        }
     }
 }

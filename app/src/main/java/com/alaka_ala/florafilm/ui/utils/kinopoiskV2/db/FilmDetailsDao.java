@@ -1,5 +1,6 @@
 package com.alaka_ala.florafilm.ui.utils.kinopoiskV2.db;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
@@ -30,10 +31,28 @@ public interface FilmDetailsDao {
     @Query("SELECT * FROM film_details WHERE kinopoiskId = :kinopoiskId")
     FilmDetails getById(int kinopoiskId);
 
-    @Query("SELECT * FROM film_details WHERE isView = :isView")
-    List<FilmDetails> getByView(boolean isView);
 
-    @Query("SELECT * FROM film_details WHERE isStartView = :isStartView")
-    List<FilmDetails> getByIsStartView(boolean isStartView);
+    @Query("SELECT * FROM film_details WHERE isView = 1 ORDER BY timestampAddedHistory DESC")
+    LiveData<List<FilmDetails>> getByView();
+
+    @Query("UPDATE film_details SET timestampAddedHistory = :ts WHERE kinopoiskId = :kinopoiskId")
+    void updateTimeStampView(long ts, int kinopoiskId);
+
+
+    @Query("SELECT * FROM film_details WHERE isStartView = 1")
+    LiveData<List<FilmDetails>> getByIsStartView();
+
+    @Query("SELECT * FROM film_details WHERE isBookmark = 1")
+    LiveData<List<FilmDetails>> getByBookmark();
+
+
+    @Query("DELETE FROM film_details WHERE kinopoiskId = :kinopoiskId")
+    void removeByKinopoiskId(int kinopoiskId);
+
+    @Query("DELETE FROM film_details")
+    void removeAll();
+
+
+
 
 }

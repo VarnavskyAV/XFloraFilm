@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey;
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * Сущность для кэширования детальной информации о фильме.
@@ -160,6 +161,8 @@ public class FilmDetails extends BaseModel {
 
     private boolean isBookmark;
 
+    private long timestampAddedHistory;
+
 
     public FilmDetails() {
         this.countries = new ArrayList<>();
@@ -223,6 +226,11 @@ public class FilmDetails extends BaseModel {
     public Long getPositionView() {return safeLong(positionView);}
     // Если true то фильм в закладках
     public Boolean isBookmark() {return safeBoolean(isBookmark);}
+    public long getTimestampAddedHistory() {
+        return timestampAddedHistory;
+    }
+
+
 
 
 
@@ -285,9 +293,72 @@ public class FilmDetails extends BaseModel {
     public void setIsBookmark(Boolean isBookmark) {
         this.isBookmark = isBookmark;
     }
+    public void setTimestampAddedHistory(long timestampAddedHistory) {
+        this.timestampAddedHistory = timestampAddedHistory;
+    }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FilmDetails that = (FilmDetails) o;
+        return isView == that.isView &&
+                isStartView == that.isStartView &&
+                positionView == that.positionView &&
+                isBookmark == that.isBookmark &&
+                timestampAddedHistory == that.timestampAddedHistory &&
+                Objects.equals(kinopoiskId, that.kinopoiskId) &&
+                Objects.equals(lastUpdated, that.lastUpdated) &&
+                Objects.equals(kinopoiskHDId, that.kinopoiskHDId) &&
+                Objects.equals(imdbId, that.imdbId) &&
+                Objects.equals(nameRu, that.nameRu) &&
+                Objects.equals(nameEn, that.nameEn) &&
+                Objects.equals(nameOriginal, that.nameOriginal) &&
+                Objects.equals(posterUrl, that.posterUrl) &&
+                Objects.equals(posterUrlPreview, that.posterUrlPreview) &&
+                Objects.equals(coverUrl, that.coverUrl) &&
+                Objects.equals(logoUrl, that.logoUrl) &&
+                Objects.equals(reviewsCount, that.reviewsCount) &&
+                Objects.equals(ratingGoodReview, that.ratingGoodReview) &&
+                Objects.equals(ratingGoodReviewVoteCount, that.ratingGoodReviewVoteCount) &&
+                Objects.equals(ratingKinopoisk, that.ratingKinopoisk) &&
+                Objects.equals(ratingKinopoiskVoteCount, that.ratingKinopoiskVoteCount) &&
+                Objects.equals(ratingImdb, that.ratingImdb) &&
+                Objects.equals(ratingImdbVoteCount, that.ratingImdbVoteCount) &&
+                Objects.equals(ratingFilmCritics, that.ratingFilmCritics) &&
+                Objects.equals(ratingFilmCriticsVoteCount, that.ratingFilmCriticsVoteCount) &&
+                Objects.equals(ratingAwait, that.ratingAwait) &&
+                Objects.equals(ratingAwaitCount, that.ratingAwaitCount) &&
+                Objects.equals(ratingRfCritics, that.ratingRfCritics) &&
+                Objects.equals(ratingRfCriticsVoteCount, that.ratingRfCriticsVoteCount) &&
+                Objects.equals(webUrl, that.webUrl) &&
+                Objects.equals(year, that.year) &&
+                Objects.equals(filmLength, that.filmLength) &&
+                Objects.equals(slogan, that.slogan) &&
+                Objects.equals(description, that.description) &&
+                Objects.equals(shortDescription, that.shortDescription) &&
+                Objects.equals(editorAnnotation, that.editorAnnotation) &&
+                Objects.equals(isTicketsAvailable, that.isTicketsAvailable) &&
+                Objects.equals(productionStatus, that.productionStatus) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(ratingMpaa, that.ratingMpaa) &&
+                Objects.equals(ratingAgeLimits, that.ratingAgeLimits) &&
+                Objects.equals(countries, that.countries) &&
+                Objects.equals(genres, that.genres) &&
+                Objects.equals(startYear, that.startYear) &&
+                Objects.equals(endYear, that.endYear) &&
+                Objects.equals(serial, that.serial) &&
+                Objects.equals(shortFilm, that.shortFilm) &&
+                Objects.equals(completed, that.completed) &&
+                Objects.equals(hasImax, that.hasImax) &&
+                Objects.equals(has3D, that.has3D) &&
+                Objects.equals(lastSync, that.lastSync);
+    }
 
-
+    @Override
+    public int hashCode() {
+        return Objects.hash(kinopoiskId, lastUpdated, kinopoiskHDId, imdbId, nameRu, nameEn, nameOriginal, posterUrl, posterUrlPreview, coverUrl, logoUrl, reviewsCount, ratingGoodReview, ratingGoodReviewVoteCount, ratingKinopoisk, ratingKinopoiskVoteCount, ratingImdb, ratingImdbVoteCount, ratingFilmCritics, ratingFilmCriticsVoteCount, ratingAwait, ratingAwaitCount, ratingRfCritics, ratingRfCriticsVoteCount, webUrl, year, filmLength, slogan, description, shortDescription, editorAnnotation, isTicketsAvailable, productionStatus, type, ratingMpaa, ratingAgeLimits, countries, genres, startYear, endYear, serial, shortFilm, completed, hasImax, has3D, lastSync, isView, isStartView, positionView, isBookmark, timestampAddedHistory);
+    }
 
     // Helper methods
     public String getBestName() { 

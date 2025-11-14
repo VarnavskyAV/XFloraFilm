@@ -7,8 +7,18 @@
     <color name="chip_background_color">#E0E0E0</color> <!-- Светло-серый фон -->
     <color name="chip_text_color">#212121</color>
 
-    <color name="gradient_poster_color_dark">#1C1B1F</color>
+    <color name="gradient_poster_color_dark">#141218</color>
     <color name="gradient_poster_color_light">#FFFBFE</color>
+
+    <color name="optionIconTintDark">#141218</color>
+    <color name="optionIconTintLight">#C8C2CE</color>
+
+    <color name="updateAvailableDark">#51FF4D</color>
+    <color name="updateAvailableLight">#51FF4D</color>
+
+
+
+
 
 
 

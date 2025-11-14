@@ -63,8 +63,10 @@ public class FilmAdapter extends RecyclerView.Adapter<FilmAdapter.FilmViewHolder
     public FilmViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view;
         if (viewType == VIEW_TYPE_GRID) {
+            // Используется для отображения фильмов в сетке
             view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_film, parent, false);
         } else {
+            // Используется на главной странице для отображения фильмов горизонтально
             view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_film_horizontal, parent, false);
         }
         return new FilmViewHolder(view);

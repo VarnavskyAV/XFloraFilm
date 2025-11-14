@@ -3,13 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/navigation_activity">
+    app:startDestination="@id/navigation_menu">
 
     <fragment
         android:id="@+id/navigation_home"
         android:name="com.alaka_ala.florafilm.ui.fragments.home.HomeFragment"
-        android:label="Home"
-        tools:layout="@layout/fragment_home" >
+        android:label="Главная"
+        tools:layout="@layout/fragment_home">
         <action
             android:id="@+id/action_navigation_home_to_filmDetailsFragment"
             app:destination="@id/filmDetailsFragment"
@@ -29,13 +29,24 @@
     <fragment
         android:id="@+id/navigation_activity"
         android:name="com.alaka_ala.florafilm.ui.fragments.activity.ActivityFragment"
-        android:label="Activity"
-        tools:layout="@layout/fragment_activity" />
+        android:label="Активность"
+        tools:layout="@layout/fragment_activity" >
+        <action
+            android:id="@+id/action_navigation_activity_to_filmDetailsFragment"
+            app:destination="@id/filmDetailsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_navigation_activity_to_filtersListFragment"
+            app:destination="@id/filtersListFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/navigation_menu"
         android:name="com.alaka_ala.florafilm.ui.fragments.menu.MenuFragment"
-        android:label="Menu"
+        android:label="Меню"
         tools:layout="@layout/fragment_menu" />
     <fragment
         android:id="@+id/filmDetailsFragment"
@@ -57,7 +68,11 @@
         tools:layout="@layout/fragment_filters_list" >
         <action
             android:id="@+id/action_filtersListFragment_to_filmDetailsFragment"
-            app:destination="@id/filmDetailsFragment" />
+            app:destination="@id/filmDetailsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
 </navigation>
