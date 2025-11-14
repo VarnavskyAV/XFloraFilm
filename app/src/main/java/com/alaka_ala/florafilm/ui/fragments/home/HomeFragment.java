@@ -5,21 +5,21 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentHomeBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
-import com.alaka_ala.florafilm.ui.utils.kinopoisk.models.FilmItem;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.api.KinopoiskApiClientV2;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.constants.FilmCollectionType;
 import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmCollection;
@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Queue;
 
 public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickListener, FilmCollectionAdapter.OnCollectionClickListener {
@@ -46,6 +47,7 @@ public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickLis
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
+        setHasOptionsMenu(true);
         // Показываем нижнюю навигацию при выходе из этого фрагмента.
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).showBottomNavigationView();
@@ -190,5 +192,26 @@ public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickLis
         Bundle bundle = new Bundle();
         bundle.putInt("kinopoiskId", film.getKinopoiskId());
         Navigation.findNavController(binding.getRoot()).navigate(R.id.action_navigation_home_to_filmDetailsFragment, bundle);
+    }
+
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        menu.add("Поиск").setIcon(R.drawable.find).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add("Избранное").setIcon(R.drawable.bookmark_add).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (Objects.equals(item.getTitle(), "Поиск")) {
+            Navigation.findNavController(binding.getRoot()).navigate(R.id.action_navigation_home_to_findFragments);
+        } else if (Objects.equals(item.getTitle(), "Избранное")) {
+            Bundle bundle = new Bundle();
+            bundle.putString("type", "bookmark");
+            Navigation.findNavController(binding.getRoot()).navigate(R.id.action_navigation_home_to_filtersListFragment, bundle);
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

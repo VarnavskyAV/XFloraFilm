@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView navView;
     private NavController navController; // Сделаем navController полем класса
-
+    private Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,7 +32,8 @@ public class MainActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
+
+        toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         navView = findViewById(R.id.bottom_nav_view);
@@ -99,6 +100,11 @@ public class MainActivity extends AppCompatActivity {
             });
             navView.startAnimation(slideDown);
         }
+    }
+
+    public void setToolbarTitle(String title) {
+        if (toolbar == null) return;
+        toolbar.setTitle(title);
     }
 
     /**

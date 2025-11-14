@@ -24,6 +24,13 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_navigation_home_to_findFragments"
+            app:destination="@id/findFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -51,8 +58,8 @@
     <fragment
         android:id="@+id/filmDetailsFragment"
         android:name="com.alaka_ala.florafilm.ui.fragments.filmDetails.FilmDetailsFragment"
-        android:label="Детали"
-        tools:layout="@layout/fragment_film_details" >
+        android:label="О фильме"
+        tools:layout="@layout/fragment_film_details">
         <action
             android:id="@+id/action_filmDetailsFragment_to_filtersListFragment"
             app:destination="@id/filtersListFragment"
@@ -73,6 +80,15 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+    <fragment
+        android:id="@+id/findFragment"
+        android:name="com.alaka_ala.florafilm.ui.fragments.find.FindFragment"
+        android:label="Поиск"
+        tools:layout="@layout/fragment_find">
+        <action
+            android:id="@+id/action_findFragment_to_filmDetailsFragment"
+            app:destination="@id/filmDetailsFragment" />
     </fragment>
 
 </navigation>

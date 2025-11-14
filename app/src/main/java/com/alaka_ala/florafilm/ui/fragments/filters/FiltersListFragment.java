@@ -10,8 +10,6 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.Observer;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -36,7 +34,6 @@ import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.GenreResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,6 +63,7 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentFiltersListBinding.inflate(inflater, container, false);
+        setHasOptionsMenu(true);
         return binding.getRoot();
     }
 
@@ -85,10 +83,41 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
         Bundle args = getArguments();
         if (args != null) {
             String type = args.getString("type", "");
+            String data = args.getString("data", "");
+            printTitle(type, data);
             if (isTypeValid(type)) {
                 setupRecyclerView(type);
                 fetchData(type, args);
             }
+        }
+    }
+
+    private void printTitle(String type, String data) {
+        String title = "";
+
+        if (type.equals("bookmark")) {
+            title = "Избранное";
+        } else if (type.equals("ratingKinopoisk")) {
+            title = "Фильтр по рейтингу кинопоиска";
+        } else if (type.equals("ratingImdb")) {
+            title = "Фильтр по рейтингу Imdb";
+        } else if (type.equals("year")) {
+            title = "Фильтр по году (" + data + ")";
+        } else if (type.equals("genre")) {
+            title = "Фильтр по жанру (" + data + ")";
+        } else if (type.equals("country")) {
+            title = "Фильтр по стране (" + data + ")";
+        } else if (type.equals("collection")) {
+            title = getNameColletion(data);
+        } else if (type.equals("history")) {
+            title = "История просмотра";
+        } else if (type.equals("resume")) {
+            title = "ранее смотрели";
+        }
+
+
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).setToolbarTitle(title);
         }
     }
 
@@ -380,4 +409,42 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
             handleApiError();
         }
     }
+
+
+    private String getNameColletion(String title) {
+        switch (title) {
+            case "TOP_POPULAR_ALL":
+                return "Популярные фильмы и сериалы";
+            case "TOP_POPULAR_MOVIES":
+                return "Популярные фильмы";
+            case "POPULAR_SERIES":
+                return "Популярные сериалы";
+            case "TOP_250_TV_SHOWS":
+                return "Топ 250 сериалов";
+            case "TOP_250_MOVIES":
+                return "Топ 250 фильмов";
+            case "VAMPIRE_THEME":
+                return "Про вампиров";
+            case "COMICS_THEME":
+                return "По комиксам";
+            case "CLOSES_RELEASES":
+                return "Закратые релизы";
+            case "FAMILY":
+                return "Семейные";
+            case "OSKAR_WINNERS_2021":
+                return "Оскар 2021";
+            case "LOVE_THEME":
+                return "Про любовь";
+            case "ZOMBIE_THEME":
+                return "Зомби";
+            case "CATASTROPHE_THEME":
+                return "Катастрофы";
+            case "KIDS_ANIMATION_THEME":
+                return "Мультфильмы";
+            default:
+                return title;
+        }
+    }
+
+
 }
