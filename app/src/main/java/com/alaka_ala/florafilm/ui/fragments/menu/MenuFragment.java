@@ -37,7 +37,9 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         List<MenuItem> menuItems = new ArrayList<>();
-        menuItems.add(new MenuItem("Прочитай","Иногда идёт что-то не по плану, но это нормально, ведь это неотъемлемая часть работы.","Подробнее"));
+        menuItems.add(new MenuItem("Информация","При просмотре фильма приложение может использовать торренты." +
+                " Отключите их в настройках, что бы использовать только доступные базы фильмов (Lumex, Vibix, Hdvb и т.д.), " +
+                "но помните, что они могут быть недоступны по разным причинам.","Принято"));
         menuItems.add(new MenuItem(R.drawable.update, "Доступно обновление", R.attr.StrokeUpdateColor));
         menuItems.add(new MenuItem(R.drawable.utorrent, "Торренты"));
         menuItems.add(new MenuItem(R.drawable.download, "Загрузки"));

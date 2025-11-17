@@ -5,6 +5,8 @@
         <item name="android:statusBarColor">?attr/MyGradientColor</item>
         <item name="IconTintToolbar">@color/optionIconTintDark</item>
         <item name="StrokeUpdateColor">@color/updateAvailableLight</item>
+        <item name="ButtonsTheme">@color/ButtonThemeLight</item>
+
     </style>
 
     <style name="Theme.FloraFilmX" parent="Base.Theme.FloraFilmX" />

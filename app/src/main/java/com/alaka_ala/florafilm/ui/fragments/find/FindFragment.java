@@ -86,7 +86,7 @@ public class FindFragment extends Fragment implements FilmSearchAdapter.OnItemCl
     private void searchFilms(String keyword) {
         showLoading(true);
 
-        kinopoiskApiClientV2.searchFilmByKeyword(keyword, 1, false, new KinopoiskApiClientV2.ApiCallback<FilmSearchResponse>() {
+        kinopoiskApiClientV2.searchFilmByKeyword(keyword, 1, false, new KinopoiskApiClientV2.ApiCallback<>() {
             @Override
             public void onSuccess(FilmSearchResponse result) {
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -151,6 +151,6 @@ public class FindFragment extends Fragment implements FilmSearchAdapter.OnItemCl
         // Обработка нажатия на элемент списка
         Bundle bundle = new Bundle();
         bundle.putInt("kinopoiskId", film.getFilmId());
-        Navigation.findNavController(binding.getRoot()).navigate(R.id.action_findFragment_to_filmDetailsFragment, bundle);
+        Navigation.findNavController(binding.getRoot()).navigate(R.id.action_findFragment_to_filmDetailFragment, bundle);
     }
 }

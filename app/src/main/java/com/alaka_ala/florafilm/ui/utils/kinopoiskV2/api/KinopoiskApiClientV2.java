@@ -315,6 +315,12 @@ public class KinopoiskApiClientV2 {
                 public void onSuccess(FilmDetails result) {
                     if (result != null) {
                         executor.execute(() -> {
+                            FilmDetails cached = database.filmDetailsDao().getById(kinopoiskId);
+                            if (cached != null) {
+                                result.setIsBookmark(cached.isBookmark());
+                                result.setIsStartView(cached.isStartView());
+                                result.setPositionView(cached.getPositionView());
+                            }
                             result.setLastUpdated(System.currentTimeMillis());
                             result.setIsView(true); // При загрузке устанавливаем true  говоря о том что страница фильма просмотрена
                             database.filmDetailsDao().insert(result);

@@ -87,7 +87,7 @@
         android:label="Поиск"
         tools:layout="@layout/fragment_find">
         <action
-            android:id="@+id/action_findFragment_to_filmDetailsFragment"
+            android:id="@+id/action_findFragment_to_filmDetailFragment"
             app:destination="@id/filmDetailsFragment" />
     </fragment>
 

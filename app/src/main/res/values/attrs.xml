@@ -3,4 +3,6 @@
     <attr name="MyGradientColor" format="color"/>
     <attr name="IconTintToolbar" format="color"/>
     <attr name="StrokeUpdateColor" format="color"/>
+    <attr name="ButtonsTheme" format="color"/>
+
 </resources>
