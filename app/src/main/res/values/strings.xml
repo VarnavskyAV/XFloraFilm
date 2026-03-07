@@ -6,4 +6,5 @@
     <string name="video_section_title">Раздел для видео</string>
     <string name="film_poster_description">Film poster</string>
     <string name="back_button_description">Back button</string>
+    <string name="api_key_hdvb">b9ae5f8c4832244060916af4aa9d1939</string>
 </resources>

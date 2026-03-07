@@ -4,9 +4,14 @@ import android.annotation.SuppressLint;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+import androidx.room.TypeConverters;
+
+import com.alaka_ala.florafilm.ui.media.PlayerLaunchData;
+import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.db.Converters;
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -151,23 +156,40 @@ public class FilmDetails extends BaseModel {
     private Boolean has3D;
 
     @SerializedName("lastSync")
-    private Boolean lastSync;
-
+    private Boolean lastSync; // Это сетевой флаг который говорит о том, когда были обновлены последний раз данные в базе
+    /**Флаг говорит о том, что текущий фильм добавлен в коллекцию истории, а не о том, что фильм уже просмотрен до конца.*/
     private boolean isView;
-
+    /**Флаг на то начат ли просмотр фильма. Говорит о том, что фильм уже начали ранее просматривать, и добавлен в коллекцию начатых к просмотру*/
     private boolean isStartView;
-
+    /**Позиция просмотра фильма (Возможно придется перенести в отдельный класс по данным для просмотра)*/
     private long positionView;
 
-    private boolean isBookmark;
+    /** Флаг предназначен для отслеживания обновлений фильма. Задел на будущее, что бы можно было добавлять фильм в список ожидаемых*/
+    private boolean observeUpdateVoice;
 
+    /**Флаг на то добавлен ли филльм в закладки (избранное)*/
+    private boolean isBookmark;
+    /**Флаг который нужен для того, что бы отслеживать актуальность данных.
+     * Записывается обычный timestamp когда фильм был просмотрен
+     * (Описание фильма было просмотрено или если другими словами - когда была открыта страница фильма)*/
     private long timestampAddedHistory;
+
+    /**
+     * Карта сохранения позиции просмотра.
+     * Ключ - это строковое представление IndexPath (например, "0_1_4_0_1"),
+     * Значение - позиция в плеере (long).
+     */
+    @TypeConverters(Converters.class)
+    private Map<String, Long> lastPositionPlayerView;
+
 
 
     public FilmDetails() {
         this.countries = new ArrayList<>();
         this.genres = new ArrayList<>();
     }
+
+
 
     // Getters
     public Integer getKinopoiskId() { return safeInt(kinopoiskId); }
@@ -216,21 +238,19 @@ public class FilmDetails extends BaseModel {
     public Boolean isHasImax() { return safeBoolean(hasImax); }
     public Boolean isHas3D() { return safeBoolean(has3D); }
     public Boolean isLastSync() { return safeBoolean(lastSync); }
-    // Возвращает true если пользователь хоть раз зашел на страницу
-    // описания фильма. считается фильм просмотренным(не сам фильм а его описание)и он добавлен в историю
-    // True устанавливается автоматически при загрузке данных о фильме.
     public Boolean isView() {return safeBoolean(isView);}
-    // Возвращает true если фильм/сериал начали просматривать
     public Boolean isStartView() {return safeBoolean(isStartView);}
-    // Позиция просмотра фильма, при просмотре фильма, позиция будет меняться плеером автоматически.
     public Long getPositionView() {return safeLong(positionView);}
-    // Если true то фильм в закладках
     public Boolean isBookmark() {return safeBoolean(isBookmark);}
     public long getTimestampAddedHistory() {
         return timestampAddedHistory;
     }
-
-
+    public boolean isObserveUpdateVoice(){
+        return observeUpdateVoice;
+    }
+    public Map<String, Long> getLastPositionPlayerView() {
+        return lastPositionPlayerView;
+    }
 
 
 
@@ -238,7 +258,6 @@ public class FilmDetails extends BaseModel {
     public void setKinopoiskId(Integer kinopoiskId) { this.kinopoiskId = kinopoiskId; }
     public void setLastUpdated(Long lastUpdated) { this.lastUpdated = lastUpdated; }
     public void setKinopoiskHDId(String kinopoiskHDId) { this.kinopoiskHDId = kinopoiskHDId; }
-    public void setImdbId(String imdbId) { this.imdbId = imdbId; }
     public void setNameRu(String nameRu) { this.nameRu = nameRu; }
     public void setNameEn(String nameEn) { this.nameEn = nameEn; }
     public void setNameOriginal(String nameOriginal) { this.nameOriginal = nameOriginal; }
@@ -288,7 +307,7 @@ public class FilmDetails extends BaseModel {
         this.isStartView = isStartView;
     }
     public void setPositionView(Long positionView) {
-        this.positionView = positionView;
+        this.positionView = positionView;            // Не понимаю для чего это нужно
     }
     public void setIsBookmark(Boolean isBookmark) {
         this.isBookmark = isBookmark;
@@ -296,6 +315,17 @@ public class FilmDetails extends BaseModel {
     public void setTimestampAddedHistory(long timestampAddedHistory) {
         this.timestampAddedHistory = timestampAddedHistory;
     }
+    public void setObserveUpdateVoice(boolean isObserveUpdateVoice) {
+        this.observeUpdateVoice = isObserveUpdateVoice;
+    }
+    /**Нужно для сохранения позиции просмотра фильма или сериала.*/
+    public void setLastPositionPlayerView(Map<String, Long> lastPositionPlayerView) {
+        this.lastPositionPlayerView = lastPositionPlayerView;
+    }
+    public void setImdbId(String imdbId) {
+        this.imdbId = imdbId;
+    }
+
 
     @Override
     public boolean equals(Object o) {

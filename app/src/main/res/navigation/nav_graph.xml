@@ -54,7 +54,11 @@
         android:id="@+id/navigation_menu"
         android:name="com.alaka_ala.florafilm.ui.fragments.menu.MenuFragment"
         android:label="Меню"
-        tools:layout="@layout/fragment_menu" />
+        tools:layout="@layout/fragment_menu" >
+        <action
+            android:id="@+id/action_navigation_menu_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+    </fragment>
     <fragment
         android:id="@+id/filmDetailsFragment"
         android:name="com.alaka_ala.florafilm.ui.fragments.filmDetails.FilmDetailsFragment"
@@ -67,6 +71,9 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_filmDetailsFragment_to_playerFragment"
+            app:destination="@id/playerFragment" />
     </fragment>
     <fragment
         android:id="@+id/filtersListFragment"
@@ -89,6 +96,21 @@
         <action
             android:id="@+id/action_findFragment_to_filmDetailFragment"
             app:destination="@id/filmDetailsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.alaka_ala.florafilm.ui.fragments.settings.SettingsFragment"
+        android:label="Настройки"
+        tools:layout="@layout/fragment_settings" />
+
+    <fragment
+        android:id="@+id/playerFragment"
+        android:name="com.alaka_ala.florafilm.ui.fragments.player.PlayerFragment"
+        android:label="Плеер"
+        tools:layout="@layout/fragment_player" >
+        <argument
+            android:name="playerLaunchData"
+            app:argType="com.alaka_ala.florafilm.ui.media.PlayerLaunchData" />
     </fragment>
 
 </navigation>

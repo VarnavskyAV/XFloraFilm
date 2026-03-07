@@ -6,6 +6,7 @@
         <item name="IconTintToolbar">@color/optionIconTintDark</item>
         <item name="StrokeUpdateColor">@color/updateAvailableLight</item>
         <item name="ButtonsTheme">@color/ButtonThemeLight</item>
+        <item name="PlayerIconColor">@color/optionIconTintLight</item>
 
     </style>
 

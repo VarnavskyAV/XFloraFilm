@@ -4,6 +4,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -67,29 +70,35 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
         return binding.getRoot();
     }
 
+    private String type, data;
+    private Bundle args;
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        init();
 
-        filmDetailsDao = KinopoiskDatabaseV2.getDatabase(getContext()).filmDetailsDao();
-        kinopoiskApiClientV2 = KinopoiskApiClientV2.getInstance();
-
-        if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).hideBottomNavigationView();
-        }
-
-        binding.progressBarLoadingContent.setVisibility(View.VISIBLE);
-
-        Bundle args = getArguments();
         if (args != null) {
-            String type = args.getString("type", "");
-            String data = args.getString("data", "");
+            type = args.getString("type", "");
+            data = args.getString("data", "");
+
             printTitle(type, data);
+
             if (isTypeValid(type)) {
-                setupRecyclerView(type);
+                setupRecyclerView();
                 fetchData(type, args);
             }
         }
+    }
+
+    private void init() {
+        filmDetailsDao = KinopoiskDatabaseV2.getDatabase(getContext()).filmDetailsDao();
+        kinopoiskApiClientV2 = KinopoiskApiClientV2.getInstance();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).hideBottomNavigationView();
+        }
+        binding.progressBarLoadingContent.setVisibility(View.VISIBLE);
+        args = getArguments();
     }
 
     private void printTitle(String type, String data) {
@@ -125,14 +134,13 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
     public void onDestroyView() {
         super.onDestroyView();
         binding = null; // Предотвращение утечек памяти
+        executor.close();
     }
 
     /**
      * Настраивает RecyclerView в зависимости от типа контента.
-     *
-     * @param type Тип контента ("collection", "bookmark", и т.д.).
      */
-    private void setupRecyclerView(String type) {
+    private void setupRecyclerView() {
         RecyclerView rvFilterList = binding.rvFilterList;
         GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 2);
         rvFilterList.setLayoutManager(layoutManager);
@@ -161,7 +169,39 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
             historyAdapter = new HistoryViewAdapter(HistoryViewAdapter.ViewTypeItem.GRID_ADAPTIVE);
             historyAdapter.setOnItemClickListener(this);
             rvFilterList.setAdapter(historyAdapter);
+            setHasOptionsMenu(true);
         }
+    }
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        if (isDatabaseType(type)) {
+            menu.add("Очистить").setIcon(R.drawable.delete).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getTitle().equals("Очистить")) {
+            executor.execute(() -> {
+                switch (type) {
+                    case "bookmark":
+                        filmDetailsDao.removeByBookmark();
+                        break;
+                    case "history":
+                        filmDetailsDao.removeByHistory();
+                        break;
+                    case "resume":
+                        filmDetailsDao.removeByResume();
+                        break;
+                }
+            });
+            return true;
+        }
+        
+        return super.onOptionsItemSelected(item);
     }
 
     /**

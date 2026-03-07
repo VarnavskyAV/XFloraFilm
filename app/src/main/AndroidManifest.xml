@@ -18,6 +18,8 @@
         android:theme="@style/Base.Theme.FloraFilmX">
         <activity
             android:name=".ui.activities.MainActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

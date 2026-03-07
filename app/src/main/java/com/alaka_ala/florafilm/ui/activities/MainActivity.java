@@ -3,6 +3,7 @@ package com.alaka_ala.florafilm.ui.activities;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
@@ -23,7 +24,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView navView;
-    private NavController navController; // Сделаем navController полем класса
+    private NavController navController;
     private Toolbar toolbar;
 
     @Override
@@ -32,18 +33,15 @@ public class MainActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_main);
 
-
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         navView = findViewById(R.id.bottom_nav_view);
 
-
         View rootLayout = findViewById(R.id.main);
 
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            // Убираем верхний отступ для rootLayout, чтобы контент мог заходить под статус-бар
             v.setPadding(systemBars.left, 0, systemBars.right, 0);
             navView.setPadding(0, 0, 0, systemBars.bottom);
             return insets;
@@ -61,16 +59,12 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
-        navController = navHostFragment.getNavController(); // Инициализируем navController
+        navController = navHostFragment.getNavController();
 
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(navView, navController);
     }
 
-    /**
-     * Показывает нижнюю навигационную панель с анимацией.
-     * Этот метод делает BottomNavigationView видимым, используя анимацию slide-in.
-     */
     public void showBottomNavigationView() {
         if (navView.getVisibility() == View.GONE) {
             Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
@@ -79,10 +73,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Скрывает нижнюю навигационную панель с анимацией.
-     * Этот метод запускает анимацию slide-out и делает BottomNavigationView невидимым после ее завершения.
-     */
     public void hideBottomNavigationView() {
         if (navView.getVisibility() == View.VISIBLE) {
             Animation slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
@@ -102,16 +92,46 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Показывает Toolbar с анимацией.
+     */
+    public void showToolbar() {
+        if (toolbar.getVisibility() == View.GONE) {
+            AlphaAnimation fadeIn = new AlphaAnimation(0, 1);
+            fadeIn.setDuration(200);
+            toolbar.startAnimation(fadeIn);
+            toolbar.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * Скрывает Toolbar с анимацией.
+     */
+    public void hideToolbar() {
+        if (toolbar.getVisibility() == View.VISIBLE) {
+            AlphaAnimation fadeOut = new AlphaAnimation(1, 0);
+            fadeOut.setDuration(200);
+            fadeOut.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {}
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    toolbar.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {}
+            });
+            toolbar.startAnimation(fadeOut);
+        }
+    }
+
     public void setToolbarTitle(String title) {
         if (toolbar == null) return;
         toolbar.setTitle(title);
     }
 
-    /**
-     * Обрабатывает нажатие кнопки "назад" в тулбаре.
-     * Делегирует обработку NavController для корректной навигации вверх по стеку.
-     * @return true, если событие было обработано, false в противном случае.
-     */
     @Override
     public boolean onSupportNavigateUp() {
         return navController.navigateUp() || super.onSupportNavigateUp();
