@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.alaka_ala.florafilm.R;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmDetails;
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 import com.bumptech.glide.Glide;
 
 import java.util.Objects;

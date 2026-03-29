@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.alaka_ala.florafilm.R;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmCollection;
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmCollection;
 
 import java.util.HashMap;
 import java.util.List;

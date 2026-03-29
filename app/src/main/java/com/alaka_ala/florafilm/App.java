@@ -1,7 +1,8 @@
 package com.alaka_ala.florafilm;
 
 import android.app.Application;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.api.KinopoiskApiClientV2;
+
+import com.alaka_ala.unofficial_kinopoisk_api.api.KinopoiskApiClientV2;
 
 public class App extends Application {
 

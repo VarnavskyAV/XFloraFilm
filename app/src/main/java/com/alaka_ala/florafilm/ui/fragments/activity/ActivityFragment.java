@@ -15,9 +15,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentActivityBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.db.FilmDetailsDao;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.db.KinopoiskDatabaseV2;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmDetails;
+import com.alaka_ala.unofficial_kinopoisk_api.db.FilmDetailsDao;
+import com.alaka_ala.unofficial_kinopoisk_api.db.KinopoiskDatabaseV2;
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 
 public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnItemClickListener {
     private FragmentActivityBinding binding;

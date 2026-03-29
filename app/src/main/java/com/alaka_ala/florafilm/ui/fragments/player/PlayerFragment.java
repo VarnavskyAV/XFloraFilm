@@ -29,13 +29,13 @@ import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentPlayerBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
 import com.alaka_ala.florafilm.ui.media.PlayerLaunchData;
-import com.alaka_ala.florafilm.ui.utils.hdvb.HDVB;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.db.FilmDetailsDao;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.db.KinopoiskDatabaseV2;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmDetails;
+import com.alaka_ala.florafilm.utils.hdvb.HDVB;
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.File;
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.Folder;
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.Item;
+import com.alaka_ala.unofficial_kinopoisk_api.db.FilmDetailsDao;
+import com.alaka_ala.unofficial_kinopoisk_api.db.KinopoiskDatabaseV2;
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 
 import java.util.ArrayList;
 import java.util.HashMap;

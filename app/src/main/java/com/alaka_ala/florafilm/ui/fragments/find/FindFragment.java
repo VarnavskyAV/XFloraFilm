@@ -19,9 +19,9 @@ import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentFindBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
 import com.alaka_ala.florafilm.ui.fragments.find.adapters.FilmSearchAdapter;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.api.KinopoiskApiClientV2;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmSearchResponse;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.SearchResultFilm;
+import com.alaka_ala.unofficial_kinopoisk_api.api.KinopoiskApiClientV2;
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmSearchResponse;
+import com.alaka_ala.unofficial_kinopoisk_api.models.SearchResultFilm;
 
 import java.util.Collections;
 import java.util.List;

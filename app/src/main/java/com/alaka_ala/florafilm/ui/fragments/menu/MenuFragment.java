@@ -17,8 +17,8 @@ import com.alaka_ala.florafilm.BuildConfig;
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
 import com.alaka_ala.florafilm.ui.fragments.menu.models.MenuItem;
-import com.alaka_ala.florafilm.ui.utils.appUpdate.AppUpdateManager;
-import com.alaka_ala.florafilm.ui.utils.appUpdate.models.UpdateInfo;
+import com.alaka_ala.florafilm.utils.appUpdate.AppUpdateManager;
+import com.alaka_ala.florafilm.utils.appUpdate.models.UpdateInfo;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -48,14 +48,12 @@ dependencies {
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
 
+    implementation 'com.github.bumptech.glide:glide:5.0.0-rc01'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.google.code.gson:gson:2.10.1'
-    implementation 'com.github.bumptech.glide:glide:5.0.0-rc01'
-
     def room_version = "2.6.1"
     implementation "androidx.room:room-runtime:$room_version"
     annotationProcessor "androidx.room:room-compiler:$room_version"
-
     // JSOUP для парсинга HTML страниц с сайтов
     implementation 'org.jsoup:jsoup:1.15.3'
 
@@ -63,4 +61,6 @@ dependencies {
     implementation libs.media3.exoplayer
     implementation libs.media3.ui
     implementation libs.media3.exoplayer.hls
+
+    implementation project(':app:unofficial-kinopoisk-api')
 }

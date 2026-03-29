@@ -20,9 +20,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentHomeBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.api.KinopoiskApiClientV2;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.constants.FilmCollectionType;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmCollection;
+import com.alaka_ala.unofficial_kinopoisk_api.api.KinopoiskApiClientV2;
+import com.alaka_ala.unofficial_kinopoisk_api.constants.FilmCollectionType;
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmCollection;
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmItem;
 import com.google.android.material.appbar.AppBarLayout;
 
 import java.util.ArrayList;
@@ -188,7 +189,7 @@ public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickLis
     }
 
     @Override
-    public void onFilmClick(com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmItem film) {
+    public void onFilmClick(FilmItem film) {
         Bundle bundle = new Bundle();
         bundle.putInt("kinopoiskId", film.getKinopoiskId());
         Navigation.findNavController(binding.getRoot()).navigate(R.id.action_navigation_home_to_filmDetailsFragment, bundle);

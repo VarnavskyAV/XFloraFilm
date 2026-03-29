@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.alaka_ala.florafilm.R;
-import com.alaka_ala.florafilm.ui.utils.kinopoiskV2.models.FilmItem;
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmItem;
 import com.bumptech.glide.Glide;
 
 import java.util.List;
