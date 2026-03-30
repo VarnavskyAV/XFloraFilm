@@ -18,11 +18,12 @@ import com.alaka_ala.florafilm.ui.activities.MainActivity;
 import com.alaka_ala.unofficial_kinopoisk_api.db.FilmDetailsDao;
 import com.alaka_ala.unofficial_kinopoisk_api.db.KinopoiskDatabaseV2;
 import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
+import com.google.android.material.appbar.AppBarLayout;
 
 public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnItemClickListener {
     private FragmentActivityBinding binding;
     private FilmDetailsDao filmDetailsDao;
-
+    private AppBarLayout appBarLayout;
     private RecyclerView rvHistoryView, rvResumeView, rvBookmark;
 
     private HistoryViewAdapter historyAdapter;
@@ -33,12 +34,17 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = FragmentActivityBinding.inflate(inflater, container, false);
-        // скрываем нижнюю навигацию при выходе из этого фрагмента.
+        // показываем нижнюю навигацию при входе
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).showBottomNavigationView();
         }
         filmDetailsDao = KinopoiskDatabaseV2.getDatabase(getContext()).filmDetailsDao();
-
+        if (getActivity() instanceof MainActivity) {
+            appBarLayout = getActivity().findViewById(R.id.app_bar_layout);
+            if (appBarLayout != null) {
+                appBarLayout.setLiftOnScrollTargetViewId(binding.collectionsScrollview.getId());
+            }
+        }
         bindingViews();
         setupRecyclerView();
         observeData();

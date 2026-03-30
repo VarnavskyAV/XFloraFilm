@@ -4,7 +4,9 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -29,10 +31,10 @@ import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentPlayerBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
 import com.alaka_ala.florafilm.ui.media.PlayerLaunchData;
-import com.alaka_ala.florafilm.utils.hdvb.HDVB;
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.File;
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.Folder;
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.Item;
+import com.alaka_ala.florafilm.utils.hdvb.HDVB;
 import com.alaka_ala.unofficial_kinopoisk_api.db.FilmDetailsDao;
 import com.alaka_ala.unofficial_kinopoisk_api.db.KinopoiskDatabaseV2;
 import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
@@ -54,7 +56,6 @@ public class PlayerFragment extends Fragment {
     private static final int INDEX_VOICE = 3;
     private static final int INDEX_QUALITY = 4;
     private static final long SAVE_POSITION_INTERVAL_MS = 5000;
-    private static final long CONTROLS_AUTO_HIDE_DELAY = 4000;
 
     // UI элементы
     private FragmentPlayerBinding binding;
@@ -62,10 +63,13 @@ public class PlayerFragment extends Fragment {
     private ImageButton btnAspectRatio;
     private LinearLayout customControlsLayout;
 
+    // Gesture
+    private GestureDetector gestureDetector;
+    private PlayerGestureListener gestureListener;
+
     // Обработчики
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final Handler savePositionHandler = new Handler(Looper.getMainLooper());
-    private final Handler controlsHandler = new Handler(Looper.getMainLooper());
 
     // Плеер и данные
     private ExoPlayer player;
@@ -85,7 +89,7 @@ public class PlayerFragment extends Fragment {
     private int originalOrientation;
     private boolean isScreenRotated = false;
     private boolean shouldRestoreOrientation = true;
-    private boolean isControlsVisible = false;
+    private boolean isControllerVisible = true; // Флаг видимости контроллера
 
     // Режимы соотношения сторон
     private int currentAspectRatio = AspectRatioFrameLayout.RESIZE_MODE_FIT;
@@ -95,9 +99,9 @@ public class PlayerFragment extends Fragment {
             AspectRatioFrameLayout.RESIZE_MODE_ZOOM
     };
     private final int[] aspectRatioIcons = {
-            R.drawable.ic_aspect_ratio, // fit
-            R.drawable.ic_aspect_ratio, // fill
-            R.drawable.ic_aspect_ratio  // zoom
+            R.drawable.ic_aspect_ratio,
+            R.drawable.ic_aspect_ratio,
+            R.drawable.ic_aspect_ratio
     };
     private final String[] aspectRatioNames = {
             "FIT",
@@ -113,8 +117,6 @@ public class PlayerFragment extends Fragment {
             savePositionHandler.postDelayed(this, SAVE_POSITION_INTERVAL_MS);
         }
     };
-
-    private final Runnable hideControlsRunnable = () -> hideCustomControls();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -133,6 +135,7 @@ public class PlayerFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         initializeUI();
+        initializeGestureListener();
         initializeExecutor();
     }
 
@@ -142,8 +145,7 @@ public class PlayerFragment extends Fragment {
         btnAspectRatio = binding.getRoot().findViewById(R.id.btn_aspect_ratio);
         customControlsLayout = binding.getRoot().findViewById(R.id.custom_controls_layout);
 
-        // Сразу переворачиваем экран по умолчанию
-        // Переключаем в ландшафтную ориентацию
+        // Сразу переворачиваем экран по умолчанию в ландшафтную ориентацию
         mainActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         isScreenRotated = true;
         if (btnScreenRotate != null) {
@@ -151,99 +153,95 @@ public class PlayerFragment extends Fragment {
         }
 
         if (btnScreenRotate != null) {
-            btnScreenRotate.setOnClickListener(v -> {
-                toggleScreenOrientation();
-                resetControlsAutoHide(); // Сбросить таймер скрытия при клике
-            });
+            btnScreenRotate.setOnClickListener(v -> toggleScreenOrientation());
         }
 
         if (btnAspectRatio != null) {
-            btnAspectRatio.setOnClickListener(v -> {
-                toggleAspectRatio();
-                resetControlsAutoHide(); // Сбросить таймер скрытия при клике
-            });
+            btnAspectRatio.setOnClickListener(v -> toggleAspectRatio());
         }
 
         if (customControlsLayout != null) {
-            // Скрываем кнопки по умолчанию
-            customControlsLayout.setVisibility(View.GONE);
-            isControlsVisible = false;
-
-            // Добавляем слушатель для предотвращения скрытия при взаимодействии
-            customControlsLayout.setOnClickListener(v -> resetControlsAutoHide());
+            // Показываем кнопки по умолчанию
+            customControlsLayout.setVisibility(View.VISIBLE);
         }
 
         // Устанавливаем полноэкранный режим
         setFullscreen(true);
 
-        // Настраиваем PlayerView по умолчанию (FIT - сохраняет пропорции)
+        // Настраиваем PlayerView
         binding.playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
 
-        // Настраиваем слушатели для управления видимостью контроллеров
-        setupControlsVisibilityListener();
+        // Отключаем стандартный контроллер Media3, так как управление будет через наш GestureListener
+        binding.playerView.setUseController(false);
     }
 
-    private void setupControlsVisibilityListener() {
-        // Слушатель для отслеживания касаний на PlayerView
-        binding.playerView.setOnClickListener(v -> toggleControlsVisibility());
+    private void initializeGestureListener() {
+        // Создаем GestureListener
+        gestureListener = new PlayerGestureListener(
+                requireActivity(),
+                player,
+                binding.playerView,
+                binding.centerFeedbackLayout,
+                binding.centerFeedbackIcon,
+                binding.centerFeedbackText,
+                binding.centerFeedbackProgress,
+                binding.speed2xText
+        );
 
-        // Слушатель состояния контроллера PlayerView
-        binding.playerView.setControllerVisibilityListener(new PlayerView.ControllerVisibilityListener() {
-            @Override
-            public void onVisibilityChanged(int visibility) {
-                // Синхронизируем видимость кастомных кнопок с контроллером
-                if (customControlsLayout != null) {
-                    if (visibility == View.VISIBLE) {
-                        showCustomControls();
-                    } else {
-                        hideCustomControls();
-                    }
-                }
-            }
+        // Устанавливаем слушатель одиночного тапа для показа/скрытия контроллера
+        gestureListener.setOnSingleTapListener(() -> {
+            toggleControllerVisibility();
         });
 
-        // Также слушаем касания на самом контроллере
-        binding.playerView.setControllerVisibilityListener(new PlayerView.ControllerVisibilityListener() {
-            @Override
-            public void onVisibilityChanged(int visibility) {
-                resetControlsAutoHide();
+        // Создаем GestureDetector
+        gestureDetector = new GestureDetector(requireContext(), gestureListener);
+
+        // Обрабатываем touch события на PlayerView
+        binding.playerView.setOnTouchListener((v, event) -> {
+            // Передаем событие в GestureDetector
+            boolean handled = gestureDetector.onTouchEvent(event);
+
+            // Обрабатываем ACTION_UP для завершения жестов
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                gestureListener.onUp(event);
             }
+
+            return handled;
         });
+
+        // Устанавливаем long clickable для обработки долгого нажатия
+        binding.playerView.setLongClickable(true);
     }
 
-    private void toggleControlsVisibility() {
-        if (customControlsLayout == null) return;
+    private void toggleControllerVisibility() {
+        if (binding.playerView == null) return;
 
-        if (isControlsVisible) {
-            hideCustomControls();
+        if (isControllerVisible) {
+            // Скрываем контроллер
+            binding.playerView.hideController();
+            if (customControlsLayout != null) {
+                customControlsLayout.setVisibility(View.GONE);
+            }
+            isControllerVisible = false;
         } else {
-            showCustomControls();
+            // Показываем контроллер
+            binding.playerView.showController();
+            if (customControlsLayout != null) {
+                customControlsLayout.setVisibility(View.VISIBLE);
+            }
+            isControllerVisible = true;
+
+            // Автоматически скрываем через 3 секунды
+            mainHandler.postDelayed(() -> {
+                if (isControllerVisible && !isDestroyed) {
+                    binding.playerView.hideController();
+                    if (customControlsLayout != null) {
+                        customControlsLayout.setVisibility(View.GONE);
+                    }
+                    isControllerVisible = false;
+                }
+            }, 3000);
         }
-    }
-
-    private void showCustomControls() {
-        if (customControlsLayout == null || isDestroyed) return;
-
-        isControlsVisible = true;
-        customControlsLayout.setVisibility(View.VISIBLE);
-
-        // Запланировать автоматическое скрытие
-        resetControlsAutoHide();
-    }
-
-    private void hideCustomControls() {
-        if (customControlsLayout == null || isDestroyed) return;
-
-        isControlsVisible = false;
-        customControlsLayout.setVisibility(View.GONE);
-
-        // Отменяем отложенное скрытие
-        controlsHandler.removeCallbacks(hideControlsRunnable);
-    }
-
-    private void resetControlsAutoHide() {
-        controlsHandler.removeCallbacks(hideControlsRunnable);
-        controlsHandler.postDelayed(hideControlsRunnable, CONTROLS_AUTO_HIDE_DELAY);
     }
 
     private void setFullscreen(boolean fullscreen) {
@@ -390,14 +388,22 @@ public class PlayerFragment extends Fragment {
         player = new ExoPlayer.Builder(requireContext()).build();
         binding.playerView.setPlayer(player);
 
+        // Обновляем ссылку на player в gestureListener
+        if (gestureListener != null) {
+            // Используем рефлексию или добавляем метод для обновления player
+            // Проще создать новый listener, но player уже может быть null в момент создания
+            // Поэтому добавим метод setPlayer в PlayerGestureListener
+            gestureListener.setPlayer(player);
+        }
+
         // Настраиваем стандартный контроллер
         binding.playerView.setUseController(true);
         binding.playerView.setShowNextButton(true);
         binding.playerView.setShowPreviousButton(true);
-        binding.playerView.setShowFastForwardButton(true);
-        binding.playerView.setShowRewindButton(true);
+        binding.playerView.setShowFastForwardButton(false);
+        binding.playerView.setShowRewindButton(false);
         binding.playerView.setShowShuffleButton(false);
-        binding.playerView.setShowSubtitleButton(false);
+        binding.playerView.setShowSubtitleButton(true);
         binding.playerView.setShowVrButton(false);
 
         // Добавляем слушатель для автоматического сохранения позиции
@@ -413,6 +419,7 @@ public class PlayerFragment extends Fragment {
         mainHandler.postDelayed(() -> {
             if (!isDestroyed && binding.playerView != null) {
                 binding.playerView.showController();
+                isControllerVisible = true;
             }
         }, 500);
     }
@@ -775,8 +782,6 @@ public class PlayerFragment extends Fragment {
         super.onPause();
         saveCurrentPosition();
         savePositionHandler.removeCallbacks(savePositionRunnable);
-        controlsHandler.removeCallbacks(hideControlsRunnable);
-        hideCustomControls();
 
         if (player != null && player.isPlaying()) {
             player.pause();
@@ -793,13 +798,6 @@ public class PlayerFragment extends Fragment {
 
         // Восстанавливаем полноэкранный режим при возврате
         setFullscreen(true);
-
-        // Показываем контроллер при возвращении
-        mainHandler.postDelayed(() -> {
-            if (!isDestroyed && binding.playerView != null) {
-                binding.playerView.showController();
-            }
-        }, 300);
     }
 
     @Override
@@ -808,7 +806,6 @@ public class PlayerFragment extends Fragment {
 
         // Удаляем все обработчики
         savePositionHandler.removeCallbacks(savePositionRunnable);
-        controlsHandler.removeCallbacks(hideControlsRunnable);
 
         // Сохраняем позицию синхронно
         if (player != null && filmDetails != null && player.getCurrentMediaItem() != null) {
