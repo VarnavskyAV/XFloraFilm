@@ -46,6 +46,7 @@
 
                         <TextView
                             android:id="@+id/textView2"
+                            style="@style/Widget.AppCompat.TextView.SpinnerItem"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -68,50 +69,6 @@
                         android:layout_height="match_parent" />
 
                 </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/historyRootLinear"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginTop="24dp"
-                    android:orientation="vertical"
-                    android:visibility="gone"
-                    tools:visibility="visible">
-
-                    <LinearLayout
-                        android:id="@+id/historyFilter"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:clickable="true"
-                        android:focusable="auto"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/textView"
-                            style="@style/Widget.AppCompat.TextView.SpinnerItem"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="История просмотров"
-                            android:textSize="34sp" />
-
-                        <ImageView
-                            android:id="@+id/imageView3"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:layout_weight="0"
-                            android:tint="@color/material_dynamic_neutral_variant70"
-                            app:srcCompat="@drawable/round_navigate_next_24" />
-                    </LinearLayout>
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvHistoryView"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent" />
-                </LinearLayout>
-
                 <LinearLayout
                     android:id="@+id/resumeRootLinear"
                     android:layout_width="match_parent"
@@ -154,6 +111,48 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent" />
                 </LinearLayout>
+                <LinearLayout
+                android:id="@+id/historyRootLinear"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="24dp"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:id="@+id/historyFilter"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clickable="true"
+                    android:focusable="auto"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/textView"
+                        style="@style/Widget.AppCompat.TextView.SpinnerItem"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="История просмотров"
+                        android:textSize="34sp" />
+
+                    <ImageView
+                        android:id="@+id/imageView3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_weight="0"
+                        android:tint="@color/material_dynamic_neutral_variant70"
+                        app:srcCompat="@drawable/round_navigate_next_24" />
+                </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvHistoryView"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+            </LinearLayout>
 
             </LinearLayout>
         </ScrollView>

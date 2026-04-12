@@ -20,6 +20,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AppUpdateManager {
+    // Github токен
+    private static final String ght = "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";
     private static final String METADATA_URL = "https://raw.githubusercontent.com/VarnavskyAV/XFloraFilm/refs/heads/master/app/release/output-metadata.json";
     private static final String APK_BASE_URL = "https://github.com/VarnavskyAV/XFloraFilm/raw/refs/heads/master/app/release";
 

@@ -1,9 +1,12 @@
 package com.alaka_ala.florafilm.ui.fragments.activity;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentActivityBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
+import com.alaka_ala.florafilm.utils.preferences.AppPreferences;
 import com.alaka_ala.unofficial_kinopoisk_api.db.FilmDetailsDao;
 import com.alaka_ala.unofficial_kinopoisk_api.db.KinopoiskDatabaseV2;
 import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
@@ -62,20 +66,38 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
      * Настраивает RecyclerView, устанавливая LayoutManager и адаптеры.
      */
     private void setupRecyclerView() {
+        boolean isViewListBookmark = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, getContext());
+        if (!isViewListBookmark) {
+            rvBookmark.setVisibility(View.GONE);
+        }
+        bookmarkAdapter = new HistoryViewAdapter(HistoryViewAdapter.ViewTypeItem.HORIZONTAL);
+        bookmarkAdapter.setOnItemClickListener(this);
+        rvBookmark.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        rvBookmark.setAdapter(bookmarkAdapter);
+
+
+        boolean isViewListHistory = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, getContext());
+        if (!isViewListHistory){
+            rvHistoryView.setVisibility(View.GONE);
+        }
         historyAdapter = new HistoryViewAdapter(HistoryViewAdapter.ViewTypeItem.HORIZONTAL);
         historyAdapter.setOnItemClickListener(this);
         rvHistoryView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvHistoryView.setAdapter(historyAdapter);
 
+        boolean isViewListResumeview = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, getContext());
+        if (!isViewListResumeview){
+            rvResumeView.setVisibility(View.GONE);
+        }
         resumeAdapter = new HistoryViewAdapter(HistoryViewAdapter.ViewTypeItem.HORIZONTAL);
         resumeAdapter.setOnItemClickListener(this);
         rvResumeView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvResumeView.setAdapter(resumeAdapter);
 
-        bookmarkAdapter = new HistoryViewAdapter(HistoryViewAdapter.ViewTypeItem.HORIZONTAL);
-        bookmarkAdapter.setOnItemClickListener(this);
-        rvBookmark.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        rvBookmark.setAdapter(bookmarkAdapter);
+        if (!isViewListBookmark && !isViewListHistory && !isViewListResumeview){
+            MainActivity activity = (MainActivity) getActivity();
+            activity.showBottomNavigationView();
+        }
 
         setupFilterTitle();
 
@@ -91,6 +113,36 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
                 Navigation.findNavController(binding.getRoot()).navigate(R.id.action_navigation_activity_to_filtersListFragment, bundle);
             }
         });
+        binding.bookmarkFilter.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                String[] items = new String[]{"Очистить", "Скрыть/Показать список"};
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("Закладки");
+                builder.setItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (i == 0) {
+                            new Thread(() -> {
+                                filmDetailsDao.clearBookmarks();
+                            }).start();
+                        } else {
+                            boolean isVisible = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                                    AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, getContext());
+                            AppPreferences.ActivityListViewAdapters.setVisibleAdapter(
+                                    AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK,
+                                    getContext(),
+                                    !isVisible);
+                            isVisible = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                                    AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, getContext());
+                            rvBookmark.setVisibility(isVisible ? View.VISIBLE : View.GONE);
+                        }
+                    }
+                });
+                builder.show();
+                return true;
+            }
+        });
 
         binding.historyFilter.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -98,6 +150,36 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
                 Bundle bundle = new Bundle();
                 bundle.putString("type", "history");
                 Navigation.findNavController(binding.getRoot()).navigate(R.id.action_navigation_activity_to_filtersListFragment, bundle);
+            }
+        });
+        binding.historyFilter.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                String[] items = new String[]{"Очистить", "Скрыть/Показать список"};
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("История");
+                builder.setItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (i==0) {
+                            new Thread(() -> {
+                                filmDetailsDao.clearHistory();
+                            }).start();
+                        } else {
+                            boolean isVisible = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                                    AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, getContext());
+                            AppPreferences.ActivityListViewAdapters.setVisibleAdapter(
+                                    AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW,
+                                    getContext(), !isVisible
+                            );
+                            isVisible = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                                    AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, getContext());
+                            rvHistoryView.setVisibility(isVisible ? View.VISIBLE : View.GONE);
+                        }
+                    }
+                });
+                builder.show();
+                return true;
             }
         });
 
@@ -108,6 +190,36 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
                 Bundle bundle = new Bundle();
                 bundle.putString("type", "resume");
                 Navigation.findNavController(binding.getRoot()).navigate(R.id.action_navigation_activity_to_filtersListFragment, bundle);
+            }
+        });
+        binding.resumeFilter.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                String[] items = new String[]{"Очистить", "Скрыть/Показать список"};
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("Продолжить просмотр");
+                builder.setItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (i==0) {
+                            new Thread(() -> {
+                                filmDetailsDao.clearResume();
+                            }).start();
+                        } else {
+                            boolean isVisible = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                                    AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, getContext());
+                            AppPreferences.ActivityListViewAdapters.setVisibleAdapter(
+                                    AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW,
+                                    getContext(), !isVisible
+                            );
+                            isVisible = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                                    AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, getContext());
+                            rvResumeView.setVisibility(isVisible ? View.VISIBLE : View.GONE);
+                        }
+                    }
+                });
+                builder.show();
+                return true;
             }
         });
 
@@ -142,6 +254,7 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
         boolean historyEmpty = historyAdapter.getItemCount() == 0;
         boolean resumeEmpty = resumeAdapter.getItemCount() == 0;
         boolean bookmarksEmpty = bookmarkAdapter.getItemCount() == 0;
+
 
         if (historyEmpty && resumeEmpty && bookmarksEmpty) {
             binding.textView4.setVisibility(View.VISIBLE);

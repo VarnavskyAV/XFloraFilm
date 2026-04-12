@@ -121,12 +121,6 @@ public class FilmDetailsFragment extends Fragment {
                     binding.contentGroup.setVisibility(View.VISIBLE);
                     binding.appBarLayout.setVisibility(View.VISIBLE);
                     binding.nstdScrollView.setVisibility(View.VISIBLE);
-                    if (!filmDetails.isSerial()) {
-                        binding.btnResumeView.setText(filmDetails.getPositionView() != 0 ? "Продолжить просмотр" : "Начать просмотр");
-                    }
-                    if (getActivity() != null) {
-                        getActivity().invalidateOptionsMenu();
-                    }
                 });
             }
 

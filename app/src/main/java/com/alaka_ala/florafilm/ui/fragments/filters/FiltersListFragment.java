@@ -134,7 +134,7 @@ public class FiltersListFragment extends Fragment implements FilmAdapter.OnFilmC
     public void onDestroyView() {
         super.onDestroyView();
         binding = null; // Предотвращение утечек памяти
-        executor.close();
+        executor.shutdown();
     }
 
     /**

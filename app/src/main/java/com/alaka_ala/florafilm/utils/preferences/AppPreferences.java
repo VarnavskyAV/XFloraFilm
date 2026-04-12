@@ -8,28 +8,6 @@ import android.content.SharedPreferences;
 public class AppPreferences {
     private static final String preferencesName = "AppPreferences";
 
-
-    public static class ViewTorrent {
-        private static final boolean viewTorrent = false; // Def value
-        private static final String key_param_view_torrent = "viewTorrent";
-
-
-        public static boolean isViewTorrent(Context context) {
-            SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
-            return preferences.getBoolean(key_param_view_torrent, viewTorrent);
-        }
-
-        /**
-         * Вкл/Отключить использование торрентов для просмотра
-         */
-        public static void setViewTorrent(Context context, boolean isViewTorrent) {
-            SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
-            preferences.edit().putBoolean(key_param_view_torrent, isViewTorrent).apply();
-        }
-
-
-    }
-
     public static class CDNSettings {
         public static class HDVB {
             private static final boolean cdn_hdvb_active_default = true; // Def value
@@ -51,6 +29,44 @@ public class AppPreferences {
                 preferences.edit().putBoolean(key_param_cdn, true).apply();
             }
         }
+    }
+
+
+    /**Класс предназначен для настроек на странице активности */
+    public static class ActivityListViewAdapters {
+        private static final boolean DEF_VALUE_ACTIVITY_LIST_VIEW_ADAPTERS_ENABLED = true; //Def Value // По умолчанию показываем списки
+
+        private static final String key_activity_list_view_adapter_enabled = "activity-list-view-adapter";
+
+        /**Устанавливает видимость адаптера
+         * @param nameListFilter Указываются список фильтра на что нужно отключить список.
+         *                       К примеру: закладки (bookmark), продолжить просмотр (resumeView) и т.д.
+         *                       используй enum {@link ListNames}
+         * @param visible true - видимость списка адаптера будет включена, False напротив.
+         * @param ctx Контекст приложения. Нужен, что бы получить SharedPreferences экземпляр класса
+         * @-  Доступные параметры listName ( bookmark, resumeView, historyView )*/
+        public static void setVisibleAdapter(ListNames nameListFilter, Context ctx, boolean visible) {
+            SharedPreferences prefs = ctx.getSharedPreferences(preferencesName, MODE_PRIVATE);
+            prefs.edit().putBoolean(nameListFilter + "_" + key_activity_list_view_adapter_enabled, visible ).apply();
+        }
+
+        public static Boolean getVisibleAdapter(ListNames nameListFilter, Context ctx) {
+            SharedPreferences prefs = ctx.getSharedPreferences(preferencesName, MODE_PRIVATE);
+            return prefs.getBoolean(nameListFilter + "_" + key_activity_list_view_adapter_enabled, DEF_VALUE_ACTIVITY_LIST_VIEW_ADAPTERS_ENABLED);
+        }
+
+
+        /**Список ключей названий категорий на экране "Активность"
+         * @- BOOKMARK
+         * @- RESUMEVIEW
+         * @- HISTORYVIEW*/
+        public enum ListNames {
+            BOOKMARK,
+            RESUMEVIEW,
+            HISTORYVIEW;
+        }
+
+
     }
 
 

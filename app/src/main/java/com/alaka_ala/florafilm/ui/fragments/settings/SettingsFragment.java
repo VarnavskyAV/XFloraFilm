@@ -19,15 +19,19 @@ import androidx.fragment.app.Fragment;
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentSettingsBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
+import com.alaka_ala.florafilm.utils.appUpdate.App2UpdateManager;
 import com.alaka_ala.florafilm.utils.appUpdate.AppUpdateManager;
 import com.alaka_ala.florafilm.utils.appUpdate.models.UpdateInfo;
 import com.alaka_ala.florafilm.utils.preferences.AppPreferences;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.materialswitch.MaterialSwitch;
 
+import java.io.File;
+
 public class SettingsFragment extends Fragment {
     private FragmentSettingsBinding binding;
     private AppUpdateManager appUpdateManager;
+    private App2UpdateManager app2UpdateManager;
 
     private Button checkForUpdateButton;
     private TextView versionInfoTextView;
@@ -37,6 +41,7 @@ public class SettingsFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         appUpdateManager = AppUpdateManager.getInstance(requireContext());
+        app2UpdateManager = App2UpdateManager.getInstance(getContext());
     }
 
     @Override
@@ -57,7 +62,6 @@ public class SettingsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         appUpdate(view);
-        torrentView(view);
         cdnInit(view);
 
     }
@@ -76,17 +80,6 @@ public class SettingsFragment extends Fragment {
             });
         }
 
-    }
-
-    private void torrentView(View view) {
-        MaterialSwitch switchTorrentView = view.findViewById(R.id.switchTorrentView);
-        switchTorrentView.setChecked(AppPreferences.ViewTorrent.isViewTorrent(getContext()));
-        switchTorrentView.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(@NonNull CompoundButton buttonView, boolean isChecked) {
-                AppPreferences.ViewTorrent.setViewTorrent(getContext(), isChecked);
-            }
-        });
     }
 
 
@@ -123,7 +116,36 @@ public class SettingsFragment extends Fragment {
      * Обрабатывает результат с помощью UpdateCheckCallback.
      */
     private void checkForUpdate() {
-        appUpdateManager.checkForUpdate(new AppUpdateManager.UpdateCheckCallback() {
+        /*appUpdateManager.checkForUpdate(new AppUpdateManager.UpdateCheckCallback() {
+            @Override
+            public void onUpdateAvailable(UpdateInfo updateInfo) {
+                requireActivity().runOnUiThread(() -> {
+                    updateProgressBar.setVisibility(View.INVISIBLE);
+                    checkForUpdateButton.setEnabled(true);
+                    showUpdateDialog(updateInfo);
+                });
+            }
+
+            @Override
+            public void onNoUpdateAvailable() {
+                requireActivity().runOnUiThread(() -> {
+                    updateProgressBar.setVisibility(View.INVISIBLE);
+                    checkForUpdateButton.setEnabled(true);
+                    Toast.makeText(getContext(), "У вас установлена последняя версия.", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                requireActivity().runOnUiThread(() -> {
+                    updateProgressBar.setVisibility(View.INVISIBLE);
+                    checkForUpdateButton.setEnabled(true);
+                    Toast.makeText(getContext(), "Ошибка: " + errorMessage, Toast.LENGTH_LONG).show();
+                });
+            }
+        });*/
+
+        app2UpdateManager.checkForUpdate(new App2UpdateManager.UpdateCheckCallback() {
             @Override
             public void onUpdateAvailable(UpdateInfo updateInfo) {
                 requireActivity().runOnUiThread(() -> {
@@ -151,6 +173,7 @@ public class SettingsFragment extends Fragment {
                 });
             }
         });
+
     }
 
     /**
@@ -166,7 +189,28 @@ public class SettingsFragment extends Fragment {
                             "Хотите скачать и установить?")
                 .setPositiveButton("Скачать", (dialog, which) -> {
                     Toast.makeText(getContext(), "Началась загрузка обновления...", Toast.LENGTH_SHORT).show();
-                    appUpdateManager.downloadUpdate(updateInfo);
+                    app2UpdateManager.downloadUpdate(updateInfo, new App2UpdateManager.DownloadCallback() {
+                        @Override
+                        public void onDownloadStart() {
+                            updateProgressBar.setVisibility(View.VISIBLE);
+                        }
+
+                        @Override
+                        public void onDownloadProgress(int progress) {
+                            updateProgressBar.setProgress(progress);
+                        }
+
+                        @Override
+                        public void onDownloadComplete(File apkFile) {
+                            updateProgressBar.setVisibility(View.INVISIBLE);
+                            Toast.makeText(getContext(), "Download completed!", Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onDownloadError(String error) {
+                            Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 })
                 .setNegativeButton("Позже", null)
                 .show();
