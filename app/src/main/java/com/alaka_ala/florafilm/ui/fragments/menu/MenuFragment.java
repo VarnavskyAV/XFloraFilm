@@ -45,9 +45,7 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         List<MenuItem> menuItems = new ArrayList<>();
-        menuItems.add(new MenuItem("Информация","При просмотре фильма приложение может использовать торренты." +
-                " Отключите их в настройках, что бы использовать только доступные базы фильмов (Lumex, Vibix, Hdvb и т.д.), " +
-                "но помните, что они могут быть недоступны по разным причинам.","Принято"));
+        menuItems.add(new MenuItem("Информация","Приложение находится в разработке. Возможны баги!","Принято"));
 
         AppUpdateManager.getInstance(getContext()).checkForUpdate(new AppUpdateManager.UpdateCheckCallback() {
             @Override
@@ -68,11 +66,11 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         });
 
 
-        menuItems.add(new MenuItem(R.drawable.utorrent, "Торренты"));
-        menuItems.add(new MenuItem(R.drawable.download, "Загрузки"));
-        menuItems.add(new MenuItem(R.drawable.notification, "Ожидаемые"));
+        //menuItems.add(new MenuItem(R.drawable.utorrent, "Торренты"));
+        //menuItems.add(new MenuItem(R.drawable.download, "Загрузки"));
+        //menuItems.add(new MenuItem(R.drawable.notification, "Ожидаемые"));
         menuItems.add(new MenuItem(R.drawable.settings, "Настройки"));
-        menuItems.add(new MenuItem(R.drawable.info, "О приложении"));
+        //menuItems.add(new MenuItem(R.drawable.info, "О приложении"));
 
         // Добавляем информационное сообщение
         menuItems.add(new MenuItem("Версия приложения: " + BuildConfig.VERSION_NAME));

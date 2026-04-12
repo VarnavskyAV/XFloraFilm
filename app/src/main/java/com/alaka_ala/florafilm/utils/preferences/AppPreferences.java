@@ -31,7 +31,6 @@ public class AppPreferences {
     }
 
     public static class CDNSettings {
-
         public static class HDVB {
             private static final boolean cdn_hdvb_active_default = true; // Def value
             private static final String key_param_cdn = "cdn_hdvb";
@@ -48,28 +47,6 @@ public class AppPreferences {
             }
 
             public static void enableHDVB(Context context) {
-                SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
-                preferences.edit().putBoolean(key_param_cdn, true).apply();
-            }
-        }
-
-        public static class Lumex {
-            private static final String key_param_cdn = "cdn_lumex";
-            private static final boolean cdn_lumex_active_default = false; // Def value
-
-
-            // Lumex
-            public static boolean isLumexActive(Context context) {
-                SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
-                return preferences.getBoolean(key_param_cdn, cdn_lumex_active_default);
-            }
-
-            public static void disableLumex(Context context) {
-                SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
-                preferences.edit().putBoolean(key_param_cdn, false).apply();
-            }
-
-            public static void enableLumex(Context context) {
                 SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
                 preferences.edit().putBoolean(key_param_cdn, true).apply();
             }

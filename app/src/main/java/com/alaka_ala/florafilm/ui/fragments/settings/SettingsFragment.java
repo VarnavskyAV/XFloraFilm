@@ -63,19 +63,6 @@ public class SettingsFragment extends Fragment {
     }
 
     private void cdnInit(View view) {
-        // LUMEX
-        MaterialCheckBox lumex = view.findViewById(R.id.checkBoxLumex);
-        if (lumex != null) {
-            lumex.setChecked(AppPreferences.CDNSettings.Lumex.isLumexActive(getContext()));
-            lumex.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (isChecked) {
-                    AppPreferences.CDNSettings.Lumex.enableLumex(getContext());
-                } else {
-                    AppPreferences.CDNSettings.Lumex.disableLumex(getContext());
-                }
-            });
-        }
-
         // HDVB
         MaterialCheckBox hdvb = view.findViewById(R.id.checkBoxHDVB);
         if (hdvb != null) {
