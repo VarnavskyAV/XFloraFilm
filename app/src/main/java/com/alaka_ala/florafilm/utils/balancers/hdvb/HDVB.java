@@ -1,4 +1,4 @@
-package com.alaka_ala.florafilm.utils.hdvb;
+package com.alaka_ala.florafilm.utils.balancers.hdvb;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -6,12 +6,12 @@ import android.os.Looper;
 import androidx.annotation.NonNull;
 
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter;
-import com.alaka_ala.florafilm.utils.Balancer;
-import com.alaka_ala.florafilm.utils.hdvb.models.EpisodeResponse;
-import com.alaka_ala.florafilm.utils.hdvb.models.HDVBApiResponse;
-import com.alaka_ala.florafilm.utils.hdvb.models.PlayerConfig;
-import com.alaka_ala.florafilm.utils.hdvb.models.SeasonResponse;
-import com.alaka_ala.florafilm.utils.hdvb.models.TranslationResponse;
+import com.alaka_ala.florafilm.utils.balancers.Balancer;
+import com.alaka_ala.florafilm.utils.balancers.hdvb.models.EpisodeResponse;
+import com.alaka_ala.florafilm.utils.balancers.hdvb.models.HDVBApiResponse;
+import com.alaka_ala.florafilm.utils.balancers.hdvb.models.PlayerConfig;
+import com.alaka_ala.florafilm.utils.balancers.hdvb.models.SeasonResponse;
+import com.alaka_ala.florafilm.utils.balancers.hdvb.models.TranslationResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -66,36 +66,7 @@ public class HDVB implements Balancer {
         createMapHeaders();
     }
 
-    public interface AdapterDataCallback {
-        void onDataReady(AdapterData data);
-        void onError(String error);
-    }
-
-    public static class AdapterData {
-        private final List<SelectorVoiceAdapter.Folder> rootFolders;
-        private final String posterUrl;
-        private final String title;
-
-        public AdapterData(List<SelectorVoiceAdapter.Folder> rootFolders, String posterUrl, String title) {
-            this.rootFolders = rootFolders;
-            this.posterUrl = posterUrl;
-            this.title = title;
-        }
-
-        public List<SelectorVoiceAdapter.Folder> getRootFolders() {
-            return rootFolders;
-        }
-
-        public String getPosterUrl() {
-            return posterUrl;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-    }
-
-    public void getAdapterData(int kinopoiskId, AdapterDataCallback callback) {
+    public void fetch(int kinopoiskId, SelectorVoiceAdapter.AdapterData.AdapterDataCallback callback) {
         String urlString = HDVB_API_DOMAIN + "/api/videos.json?id_kp=" + kinopoiskId + "&token=" + API_KEY;
         OkHttpClient okHttpClient = new OkHttpClient();
         Request.Builder requestBuilder = new Request.Builder();
@@ -141,7 +112,7 @@ public class HDVB implements Balancer {
         });
     }
 
-    private void processFilm(List<HDVBApiResponse> films, AdapterDataCallback callback) {
+    private void processFilm(List<HDVBApiResponse> films, SelectorVoiceAdapter.AdapterData.AdapterDataCallback callback) {
         HDVBApiResponse firstFilm = films.get(0);
         IFRAME = firstFilm.getIframeUrl();
         try {
@@ -152,14 +123,14 @@ public class HDVB implements Balancer {
             }
             updateConfig(playerConfig);
             String videoUrl = getFileFilm();
-            AdapterData adapterData = createFilmAdapterData(films, videoUrl);
+            SelectorVoiceAdapter.AdapterData adapterData = createFilmAdapterData(films, videoUrl);
             runOnMainThread(() -> callback.onDataReady(adapterData));
         } catch (Exception e) {
             runOnMainThread(() -> callback.onError("Ошибка обработки фильма: " + e.getMessage()));
         }
     }
 
-    private void processSerial(HDVBApiResponse serial, AdapterDataCallback callback) {
+    private void processSerial(HDVBApiResponse serial, SelectorVoiceAdapter.AdapterData.AdapterDataCallback callback) {
         IFRAME = serial.getIframeUrl();
         try {
             PlayerConfig playerConfig = parsePlayerConfig(IFRAME);
@@ -169,14 +140,14 @@ public class HDVB implements Balancer {
             }
             updateConfig(playerConfig);
             List<SeasonResponse> seasons = getSeasonsData();
-            AdapterData adapterData = createSerialAdapterData(serial, seasons);
+            SelectorVoiceAdapter.AdapterData adapterData = createSerialAdapterData(serial, seasons);
             runOnMainThread(() -> callback.onDataReady(adapterData));
         } catch (Exception e) {
             runOnMainThread(() -> callback.onError("Ошибка обработки сериала: " + e.getMessage()));
         }
     }
 
-    private AdapterData createFilmAdapterData(List<HDVBApiResponse> films, String videoUrl) {
+    private SelectorVoiceAdapter.AdapterData createFilmAdapterData(List<HDVBApiResponse> films, String videoUrl) {
         HDVBApiResponse firstFilm = films.get(0);
         String posterUrl = firstFilm.getPoster();
         String title = firstFilm.getTitleRu();
@@ -206,17 +177,17 @@ public class HDVB implements Balancer {
         }
 
         SelectorVoiceAdapter.Folder hdvbFolder = new SelectorVoiceAdapter.Folder("HDVB", hdvbPath, translationFolders);
-        return new AdapterData(Arrays.asList(hdvbFolder), posterUrl, title);
+        return new SelectorVoiceAdapter.AdapterData(Arrays.asList(hdvbFolder), posterUrl, title);
     }
 
-    private AdapterData createSerialAdapterData(HDVBApiResponse serial, List<SeasonResponse> seasons) {
+    private SelectorVoiceAdapter.AdapterData createSerialAdapterData(HDVBApiResponse serial, List<SeasonResponse> seasons) {
         String posterUrl = serial.getPoster();
         String title = serial.getTitleRu();
 
         List<SelectorVoiceAdapter.Item> seasonFolders = new ArrayList<>();
-        List<Integer> hdvbPath = new ArrayList<>(Arrays.asList(HDVB_ID));
+        List<Integer> hdvbPath = new ArrayList<>(Arrays.asList((HDVB_ID)));
 
-        if (seasons != null) {
+        if (!seasons.isEmpty()) {
             int seasonIndex = 0;
             for (SeasonResponse season : seasons) {
                 List<SelectorVoiceAdapter.Item> episodeFolders = new ArrayList<>();
@@ -226,45 +197,69 @@ public class HDVB implements Balancer {
                 if (season.getEpisodes() != null) {
                     int episodeIndex = 0;
                     for (EpisodeResponse episode : season.getEpisodes()) {
-                        TranslationResponse translation = episode.getTranslation();
-                        if (translation != null) {
-                            List<SelectorVoiceAdapter.Item> translationFolders = new ArrayList<>();
-                            List<Integer> episodePath = new ArrayList<>(seasonPath);
-                            episodePath.add(episodeIndex);
+                        List<SelectorVoiceAdapter.Item> translationFolders = new ArrayList<>();
+                        List<Integer> episodePath = new ArrayList<>(seasonPath);
+                        episodePath.add(episodeIndex);
 
-                            List<SelectorVoiceAdapter.Item> qualityFiles = new ArrayList<>();
-                            List<Integer> translationPath = new ArrayList<>(episodePath);
-                            translationPath.add(0);
+                        // Получаем ВСЕ озвучки из files
+                        List<Object> files = episode.getFiles();
+                        if (files != null && !files.isEmpty()) {
+                            int translationIndex = 0;
+                            for (Object fileObj : files) {
+                                // Проверяем, что объект является TranslationResponse
+                                if (fileObj instanceof TranslationResponse) {
+                                    TranslationResponse translation = (TranslationResponse) fileObj;
 
-                            String[] availableQualities = {"AUTO"};
-                            int qualityIndex = 0;
-                            for (String quality : availableQualities) {
-                                List<Integer> qualityPath = new ArrayList<>(translationPath);
-                                qualityPath.add(qualityIndex);
+                                    List<SelectorVoiceAdapter.Item> qualityFiles = new ArrayList<>();
+                                    List<Integer> translationPath = new ArrayList<>(episodePath);
+                                    translationPath.add(translationIndex);
 
-                                String episodeToken = translation.getFile();
-                                String videoUrl = "https://" + HREF + "/playlist/" + episodeToken + ".txt";
-                                qualityFiles.add(new SelectorVoiceAdapter.File(quality, qualityPath, videoUrl));
-                                qualityIndex++;
+                                    String[] availableQualities = {"AUTO"};
+                                    int qualityIndex = 0;
+                                    for (String quality : availableQualities) {
+                                        List<Integer> qualityPath = new ArrayList<>(translationPath);
+                                        qualityPath.add(qualityIndex);
+
+                                        String episodeToken = translation.getFile();
+                                        String videoUrl = "https://" + HREF + "/playlist/" + episodeToken + ".txt";
+                                        qualityFiles.add(new SelectorVoiceAdapter.File(quality, qualityPath, videoUrl));
+                                        qualityIndex++;
+                                    }
+
+                                    SelectorVoiceAdapter.Folder translationFolder = new SelectorVoiceAdapter.Folder(
+                                            translation.getTitle(),
+                                            translationPath,
+                                            qualityFiles
+                                    );
+                                    translationFolders.add(translationFolder);
+                                    translationIndex++;
+                                }
                             }
-
-                            SelectorVoiceAdapter.Folder translationFolder = new SelectorVoiceAdapter.Folder(translation.getTitle(), translationPath, qualityFiles);
-                            translationFolders.add(translationFolder);
-
-                            SelectorVoiceAdapter.Folder episodeFolder = new SelectorVoiceAdapter.Folder(episode.getTitle(), episodePath, translationFolders);
-                            episodeFolders.add(episodeFolder);
-                            episodeIndex++;
                         }
+
+                        // Добавляем папку серии с ВСЕМИ озвучками
+                        SelectorVoiceAdapter.Folder episodeFolder = new SelectorVoiceAdapter.Folder(
+                                episode.getTitle(),
+                                episodePath,
+                                translationFolders
+                        );
+                        episodeFolders.add(episodeFolder);
+                        episodeIndex++;
                     }
                 }
-                SelectorVoiceAdapter.Folder seasonFolder = new SelectorVoiceAdapter.Folder(season.getTitle(), seasonPath, episodeFolders);
+
+                SelectorVoiceAdapter.Folder seasonFolder = new SelectorVoiceAdapter.Folder(
+                        season.getTitle(),
+                        seasonPath,
+                        episodeFolders
+                );
                 seasonFolders.add(seasonFolder);
                 seasonIndex++;
             }
         }
 
         SelectorVoiceAdapter.Folder hdvbFolder = new SelectorVoiceAdapter.Folder("HDVB", hdvbPath, seasonFolders);
-        return new AdapterData(Arrays.asList(hdvbFolder), posterUrl, title);
+        return new SelectorVoiceAdapter.AdapterData(Arrays.asList(hdvbFolder), posterUrl, title);
     }
 
     private PlayerConfig parsePlayerConfig(String iframeUrl) throws IOException {
@@ -329,6 +324,7 @@ public class HDVB implements Balancer {
     }
 
     private List<SeasonResponse> parseSeasonsManually(String jsonResponse) {
+
         List<SeasonResponse> seasons = new ArrayList<>();
         try {
             JSONArray seasonsArray = new JSONArray(jsonResponse);
@@ -347,8 +343,12 @@ public class HDVB implements Balancer {
                     episode.setId(episodeJson.getString("id"));
                     JSONArray filesArray = episodeJson.getJSONArray("folder");
                     List<Object> files = new ArrayList<>();
-                    if (filesArray.length() > 0) {
-                        JSONObject translationJson = filesArray.getJSONObject(0);
+
+                    // Проходим по ВСЕМ озвучкам
+                    for (int k = 0; k < filesArray.length(); k++) {
+                        Object object = filesArray.get(k);
+                        if (object instanceof JSONArray) continue;
+                        JSONObject translationJson = ((JSONObject) object);
                         TranslationResponse translation = new TranslationResponse();
                         translation.setFile(translationJson.getString("file"));
                         translation.setTitle(translationJson.getString("title"));
@@ -356,10 +356,8 @@ public class HDVB implements Balancer {
                         translation.setId(translationJson.getString("id"));
                         translation.setText2(translationJson.optString("text2", ""));
                         files.add(translation);
-                        if (filesArray.length() > 1) {
-                            files.add(new ArrayList<>());
-                        }
                     }
+
                     episode.setFiles(files);
                     episodes.add(episode);
                 }

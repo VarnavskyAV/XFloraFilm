@@ -1,5 +1,5 @@
 // EpisodeResponse.java
-package com.alaka_ala.florafilm.utils.hdvb.models;
+package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
@@ -13,7 +13,7 @@ public class EpisodeResponse {
     private List<Object> files; // Используем Object для гибкости
 
     // Геттер для получения перевода
-    public TranslationResponse getTranslation() {
+    public TranslationResponse getFirstTranslation() {
         if (files != null && !files.isEmpty()) {
             // Первый элемент массива - объект с переводом
             Object firstItem = files.get(0);

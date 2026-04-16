@@ -20,8 +20,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentFilmDetailsBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
-import com.alaka_ala.florafilm.ui.media.PlayerLaunchData;
-import com.alaka_ala.florafilm.utils.hdvb.HDVB;
+import com.alaka_ala.florafilm.data.media.PlayerLaunchData;
+import com.alaka_ala.florafilm.utils.balancers.alloha.AllohaApiClient;
+import com.alaka_ala.florafilm.utils.balancers.alloha.AllohaModels;
+import com.alaka_ala.florafilm.utils.balancers.hdvb.HDVB;
 import com.alaka_ala.florafilm.utils.preferences.AppPreferences;
 import com.alaka_ala.unofficial_kinopoisk_api.api.KinopoiskApiClientV2;
 import com.alaka_ala.unofficial_kinopoisk_api.db.FilmDetailsDao;
@@ -81,7 +83,9 @@ public class FilmDetailsFragment extends Fragment {
                     return;
                 }
 
+                int sourceType = file.getIndexPath().get(0);
                 PlayerLaunchData launchData = new PlayerLaunchData(
+                        sourceType,
                         adapter.getRootFolders(),
                         file.getIndexPath()
                 );
@@ -136,11 +140,13 @@ public class FilmDetailsFragment extends Fragment {
 
     private void loadBalancerData() {
         adapter.clearData();
+
+        // hdvb
         if (AppPreferences.CDNSettings.HDVB.isHDVBActive(getContext())) {
             HDVB hdvb = new HDVB(getResources().getString(R.string.api_key_hdvb));
-            hdvb.getAdapterData(kinopoiskId, new HDVB.AdapterDataCallback() {
+            hdvb.fetch(kinopoiskId, new SelectorVoiceAdapter.AdapterData.AdapterDataCallback() {
                 @Override
-                public void onDataReady(HDVB.AdapterData data) {
+                public void onDataReady(SelectorVoiceAdapter.AdapterData data) {
                     adapter.addData(data.getRootFolders());
                 }
 
@@ -151,6 +157,38 @@ public class FilmDetailsFragment extends Fragment {
                     }
                 }
             });
+        }
+
+
+        // alloha
+        if (AppPreferences.CDNSettings.Alloha.isAllohaActive(getContext())) {
+            AllohaApiClient allohaApiClient = new AllohaApiClient("4cd98e08f1e1f0273692e35b16b690");
+            executorService.execute(() -> {
+                try {
+                    allohaApiClient.fetch(kinopoiskId, new SelectorVoiceAdapter.AdapterData.AdapterDataCallback() {
+                        @Override
+                        public void onDataReady(SelectorVoiceAdapter.AdapterData data) {
+                            new Handler(Looper.getMainLooper()).post(() -> {
+                                adapter.addData(data.getRootFolders());
+                            });
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            new Handler(Looper.getMainLooper()).post(() -> {
+                                Toast.makeText(getContext(), "Alloha: " + error, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        Toast.makeText(getContext(), "Alloha: Фильм отсутствует", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+
+
         }
 
 
@@ -226,6 +264,7 @@ public class FilmDetailsFragment extends Fragment {
             }
         }
     }
+
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         String title = item.getTitle().toString();
@@ -247,11 +286,13 @@ public class FilmDetailsFragment extends Fragment {
         getActivity().invalidateOptionsMenu(); // Перерисовываем меню
         return super.onOptionsItemSelected(item);
     }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
     }
+
     @Override
     public void onDestroy() {
         super.onDestroy();

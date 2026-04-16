@@ -8,27 +8,53 @@ import android.content.SharedPreferences;
 public class AppPreferences {
     private static final String preferencesName = "AppPreferences";
 
+    /**Для настроек сервисов предоставляемых видео-контент*/
     public static class CDNSettings {
+
         public static class HDVB {
-            private static final boolean cdn_hdvb_active_default = true; // Def value
-            private static final String key_param_cdn = "cdn_hdvb";
+            private static final boolean cdn_active_default = true; // Def value
+            private static final String key_cdn_param = "cdn_hdvb";
 
             // HDVB
             public static boolean isHDVBActive(Context context) {
                 SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
-                return preferences.getBoolean(key_param_cdn, cdn_hdvb_active_default);
+                return preferences.getBoolean(key_cdn_param, cdn_active_default);
             }
 
             public static void disableHDVB(Context context) {
                 SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
-                preferences.edit().putBoolean(key_param_cdn, false).apply();
+                preferences.edit().putBoolean(key_cdn_param, false).apply();
             }
 
             public static void enableHDVB(Context context) {
                 SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
-                preferences.edit().putBoolean(key_param_cdn, true).apply();
+                preferences.edit().putBoolean(key_cdn_param, true).apply();
             }
+
         }
+
+        public static class Alloha {
+            private static final boolean cdn_active_default = true; // default
+            private static final String key_cdn_param = "cdn_alloha";
+
+            // Alloha
+            public static boolean isAllohaActive(Context context) {
+                SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
+                return preferences.getBoolean(key_cdn_param, cdn_active_default);
+            }
+
+            public static void disableAlloha(Context context) {
+                SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
+                preferences.edit().putBoolean(key_cdn_param, false).apply();
+            }
+
+            public static void enableAlloha(Context context) {
+                SharedPreferences preferences = context.getSharedPreferences(preferencesName, MODE_PRIVATE);
+                preferences.edit().putBoolean(key_cdn_param, true).apply();
+            }
+
+        }
+
     }
 
 

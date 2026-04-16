@@ -10,7 +10,6 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        //KinopoiskApiClient.initialize(this);
 
         KinopoiskApiClientV2.initialize(this);
 

@@ -1,4 +1,4 @@
-package com.alaka_ala.florafilm.utils;
+package com.alaka_ala.florafilm.utils.balancers;
 
 /**
  * Интерфейс для балансеров, предоставляющих данные о видео.
@@ -9,4 +9,6 @@ public interface Balancer {
      * Уникальный идентификатор для балансера HDVB.
      */
     int HDVB_ID = 0;
+
+    int ALLOHA_ID =1;
 }

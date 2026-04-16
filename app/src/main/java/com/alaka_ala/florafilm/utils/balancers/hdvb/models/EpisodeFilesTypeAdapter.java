@@ -1,4 +1,4 @@
-package com.alaka_ala.florafilm.utils.hdvb.models;
+package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;

@@ -1,6 +1,6 @@
-package com.alaka_ala.florafilm.utils.hdvb.models;
-import com.google.gson.annotations.SerializedName;
+package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
+/** Модель данных из HTML страницы HDVB*/
 public class PlayerConfig {
     private String key;
     private String file;

@@ -1,4 +1,4 @@
-package com.alaka_ala.florafilm.ui.media;
+package com.alaka_ala.florafilm.data.media;
 
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter;
 
@@ -12,6 +12,12 @@ import java.util.stream.Collectors;
  * Простой Serializable класс-контейнер для передачи всех необходимых данных в плеер.
  */
 public class PlayerLaunchData implements Serializable {
+    /**Типы ресурсов для разных источников. Доступные можно посмотреть тут - {@link com.alaka_ala.florafilm.utils.balancers.Balancer} */
+    public int getSourceType() {
+        return sourceType;
+    }
+
+    private int sourceType;
     /**
      * Полные данные из адаптера
      */
@@ -32,7 +38,8 @@ public class PlayerLaunchData implements Serializable {
     private Map<String, Long> lastPositionPlayerView;
 
 
-    public PlayerLaunchData(List<SelectorVoiceAdapter.Folder> rootFolders, List<Integer> selectedIndexPath) {
+    public PlayerLaunchData(int sourceType, List<SelectorVoiceAdapter.Folder> rootFolders, List<Integer> selectedIndexPath) {
+        this.sourceType = sourceType;
         this.lastPositionPlayerView = new HashMap<>();
         this.rootFolders = rootFolders;
         this.selectedIndexPath = selectedIndexPath;
@@ -52,11 +59,11 @@ public class PlayerLaunchData implements Serializable {
 
     /**
      * Получает сохраненную позицию для указанного пути.
-     * @param path Путь, для которого нужно получить позицию.
+     * @param currentPath Путь, для которого нужно получить позицию.
      * @return Сохраненная позиция или null, если для этого пути ничего не сохранено.
      */
-    public Long getLastPositionPlayerView(List<Integer> path) {
-        String key = getIndexPathKey(path);
+    public Long getLastPositionPlayerView(List<Integer> currentPath) {
+        String key = getIndexPathKey(currentPath);
         return lastPositionPlayerView.get(key);
     }
 

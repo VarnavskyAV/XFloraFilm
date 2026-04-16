@@ -110,7 +110,7 @@
         tools:layout="@layout/fragment_player" >
         <argument
             android:name="playerLaunchData"
-            app:argType="com.alaka_ala.florafilm.ui.media.PlayerLaunchData" />
+            app:argType="com.alaka_ala.florafilm.data.media.PlayerLaunchData" />
     </fragment>
 
 </navigation>

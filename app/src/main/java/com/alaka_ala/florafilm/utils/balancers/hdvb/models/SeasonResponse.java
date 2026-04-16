@@ -1,5 +1,5 @@
 // SeasonResponse.java
-package com.alaka_ala.florafilm.utils.hdvb.models;
+package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
 import com.google.gson.annotations.SerializedName;
 import java.util.List;

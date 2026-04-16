@@ -45,7 +45,7 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         List<MenuItem> menuItems = new ArrayList<>();
-        menuItems.add(new MenuItem("Информация","Приложение находится в разработке. Возможны баги!","Принято"));
+        menuItems.add(new MenuItem("Информация","Приложение находится в разработке!","Принято"));
 
         AppUpdateManager.getInstance(getContext()).checkForUpdate(new AppUpdateManager.UpdateCheckCallback() {
             @Override
@@ -73,7 +73,7 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         //menuItems.add(new MenuItem(R.drawable.info, "О приложении"));
 
         // Добавляем информационное сообщение
-        menuItems.add(new MenuItem("Версия приложения: " + BuildConfig.VERSION_NAME));
+        //menuItems.add(new MenuItem("Версия приложения: " + BuildConfig.VERSION_NAME));
 
 
         adapter = new MenuAdapter(menuItems);

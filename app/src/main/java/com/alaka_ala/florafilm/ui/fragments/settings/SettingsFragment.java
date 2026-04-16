@@ -7,7 +7,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,19 +18,16 @@ import androidx.fragment.app.Fragment;
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentSettingsBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
-import com.alaka_ala.florafilm.utils.appUpdate.App2UpdateManager;
 import com.alaka_ala.florafilm.utils.appUpdate.AppUpdateManager;
 import com.alaka_ala.florafilm.utils.appUpdate.models.UpdateInfo;
 import com.alaka_ala.florafilm.utils.preferences.AppPreferences;
 import com.google.android.material.checkbox.MaterialCheckBox;
-import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.io.File;
 
 public class SettingsFragment extends Fragment {
     private FragmentSettingsBinding binding;
-    private AppUpdateManager appUpdateManager;
-    private App2UpdateManager app2UpdateManager;
+    private AppUpdateManager app2UpdateManager;
 
     private Button checkForUpdateButton;
     private TextView versionInfoTextView;
@@ -40,8 +36,7 @@ public class SettingsFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        appUpdateManager = AppUpdateManager.getInstance(requireContext());
-        app2UpdateManager = App2UpdateManager.getInstance(getContext());
+        app2UpdateManager = AppUpdateManager.getInstance(getContext());
     }
 
     @Override
@@ -80,6 +75,19 @@ public class SettingsFragment extends Fragment {
             });
         }
 
+        MaterialCheckBox alloha = view.findViewById(R.id.checkBoxAlloha);
+        if (alloha != null) {
+            alloha.setChecked(AppPreferences.CDNSettings.Alloha.isAllohaActive(getContext()));
+            alloha.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    AppPreferences.CDNSettings.Alloha.enableAlloha(getContext());
+                } else {
+                    AppPreferences.CDNSettings.Alloha.disableAlloha(getContext());
+                }
+            });
+        }
+
+
     }
 
 
@@ -116,36 +124,7 @@ public class SettingsFragment extends Fragment {
      * Обрабатывает результат с помощью UpdateCheckCallback.
      */
     private void checkForUpdate() {
-        /*appUpdateManager.checkForUpdate(new AppUpdateManager.UpdateCheckCallback() {
-            @Override
-            public void onUpdateAvailable(UpdateInfo updateInfo) {
-                requireActivity().runOnUiThread(() -> {
-                    updateProgressBar.setVisibility(View.INVISIBLE);
-                    checkForUpdateButton.setEnabled(true);
-                    showUpdateDialog(updateInfo);
-                });
-            }
-
-            @Override
-            public void onNoUpdateAvailable() {
-                requireActivity().runOnUiThread(() -> {
-                    updateProgressBar.setVisibility(View.INVISIBLE);
-                    checkForUpdateButton.setEnabled(true);
-                    Toast.makeText(getContext(), "У вас установлена последняя версия.", Toast.LENGTH_SHORT).show();
-                });
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                requireActivity().runOnUiThread(() -> {
-                    updateProgressBar.setVisibility(View.INVISIBLE);
-                    checkForUpdateButton.setEnabled(true);
-                    Toast.makeText(getContext(), "Ошибка: " + errorMessage, Toast.LENGTH_LONG).show();
-                });
-            }
-        });*/
-
-        app2UpdateManager.checkForUpdate(new App2UpdateManager.UpdateCheckCallback() {
+        app2UpdateManager.checkForUpdate(new AppUpdateManager.UpdateCheckCallback() {
             @Override
             public void onUpdateAvailable(UpdateInfo updateInfo) {
                 requireActivity().runOnUiThread(() -> {
@@ -189,26 +168,37 @@ public class SettingsFragment extends Fragment {
                             "Хотите скачать и установить?")
                 .setPositiveButton("Скачать", (dialog, which) -> {
                     Toast.makeText(getContext(), "Началась загрузка обновления...", Toast.LENGTH_SHORT).show();
-                    app2UpdateManager.downloadUpdate(updateInfo, new App2UpdateManager.DownloadCallback() {
+                    app2UpdateManager.downloadUpdate(updateInfo, new AppUpdateManager.DownloadCallback() {
                         @Override
                         public void onDownloadStart() {
+                            if (getContext() == null) return;
                             updateProgressBar.setVisibility(View.VISIBLE);
                         }
 
                         @Override
                         public void onDownloadProgress(int progress) {
+                            if (getContext() == null) return;
                             updateProgressBar.setProgress(progress);
                         }
 
                         @Override
                         public void onDownloadComplete(File apkFile) {
                             updateProgressBar.setVisibility(View.INVISIBLE);
+                            if (getContext() == null) return;
                             Toast.makeText(getContext(), "Download completed!", Toast.LENGTH_SHORT).show();
+
                         }
 
                         @Override
                         public void onDownloadError(String error) {
+                            if (getContext() == null) return;
                             Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onInstallPermissionRequired() {
+                            app2UpdateManager.requestInstallPermission(getActivity());
+                            Toast.makeText(getContext(), "необходимы разрешения на установку", Toast.LENGTH_SHORT).show();
                         }
                     });
                 })
@@ -233,8 +223,8 @@ public class SettingsFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (appUpdateManager != null) {
-            appUpdateManager.cleanup();
+        if (app2UpdateManager != null) {
+            app2UpdateManager.cleanup();
         }
     }
 }

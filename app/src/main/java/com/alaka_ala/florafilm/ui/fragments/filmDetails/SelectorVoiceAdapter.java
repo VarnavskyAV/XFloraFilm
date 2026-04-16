@@ -199,6 +199,37 @@ public class SelectorVoiceAdapter extends RecyclerView.Adapter<RecyclerView.View
         @Override
         public List<Integer> getIndexPath() { return indexPath; }
     }
+
+    public static class AdapterData {
+
+        public interface AdapterDataCallback {
+            void onDataReady(AdapterData data);
+            void onError(String error);
+        }
+
+        private final List<SelectorVoiceAdapter.Folder> rootFolders;
+        private final String posterUrl;
+        private final String title;
+
+        public AdapterData(List<SelectorVoiceAdapter.Folder> rootFolders, String posterUrl, String title) {
+            this.rootFolders = rootFolders;
+            this.posterUrl = posterUrl;
+            this.title = title;
+        }
+
+        public List<SelectorVoiceAdapter.Folder> getRootFolders() {
+            return rootFolders;
+        }
+
+        public String getPosterUrl() {
+            return posterUrl;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+    }
+
     //endregion
 
     //region ViewHolders
@@ -247,4 +278,5 @@ public class SelectorVoiceAdapter extends RecyclerView.Adapter<RecyclerView.View
         void onFolderClick(int position);
     }
     //endregion
+
 }
