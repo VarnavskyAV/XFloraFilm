@@ -13,9 +13,6 @@ import com.alaka_ala.florafilm.utils.balancers.alloha.models.serial.SeriesData;
 import com.alaka_ala.florafilm.utils.balancers.alloha.models.serial.SeriesResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 
 import org.json.JSONObject;
 
@@ -40,55 +37,58 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 public final class AllohaApiClient {
-    private final String apiKey;
-    public AllohaApiClient(String apiKey) {
-        this.apiKey = apiKey;
+
+
+    public AllohaApiClient(String token) {
+        this.token = token;
     }
+
+    private String token;
 
     public void fetch(int kpId, SelectorVoiceAdapter.AdapterData.AdapterDataCallback callback) throws Exception {
         fetch(String.valueOf(kpId), callback);
     }
 
-    public void fetch(String kpId, SelectorVoiceAdapter.AdapterData.AdapterDataCallback callback) throws Exception {
-        if (callback == null) return;
-        String apiUrl = String.format(
-                Locale.ROOT,
-                "https://api.alloha.tv/?token=%s&kp=%s",
-                URLEncoder.encode(apiKey.trim(), "UTF-8"),
-                URLEncoder.encode(kpId.trim(), "UTF-8")
-        );
+    public void fetch(String kpId, SelectorVoiceAdapter.AdapterData.AdapterDataCallback callback) {
+        try {
+            String apiUrl = String.format(
+                    Locale.ROOT,
+                    "https://api.alloha.tv/?token=%s&kp=%s",
+                    URLEncoder.encode(token.trim(), "UTF-8"),
+                    URLEncoder.encode(kpId.trim(), "UTF-8")
+            );
 
-        String jsonStr = requestUnsafe(apiUrl);
-        // Создаем Gson (можно с настройками)
-        Gson gson = new GsonBuilder()
-                .setPrettyPrinting()  // для красивого вывода
-                .create();
+            String jsonStr = requestUnsafe(apiUrl);
+            JSONObject dataObj = new JSONObject(jsonStr).getJSONObject("data");
+            JSONObject seasonsObj = dataObj.optJSONObject("seasons");
 
-        boolean isSerial = false;
-        if (jsonStr.isEmpty()) {
-            callback.onError("Аллоха сказала - Аллоха! фильма не будет!\n(Фильм добавят чуть позже.)");
-            return;
-        } else {
-            if (!isValidJson(jsonStr)) {
-                callback.onError("Ошибка синтаксиса данных");
-                return;
+            Gson gson = new GsonBuilder()
+                    .setPrettyPrinting()
+                    .create();
+
+            if (seasonsObj == null) {
+                // Фильм
+                MovieResponse response = gson.fromJson(jsonStr, MovieResponse.class);
+                callback.onDataReady(createFilmAdapterDataFromAlloha(response.getData()));
+                return; // КРИТИЧНО: иначе ниже будет NPE
             }
-            JSONObject jsonObject = new JSONObject(jsonStr);
-            isSerial = jsonObject.has("data") && jsonObject.getJSONObject("data").has("seasons");
-        }
 
-        if (isSerial) {
+            // Сериал
             SeriesResponse response = gson.fromJson(jsonStr, SeriesResponse.class);
             callback.onDataReady(createSerialAdapterDataFromAlloha(response.getData()));
-        }
-        else {
-            // Десериализация JSON в объект
-            MovieResponse response = gson.fromJson(jsonStr, MovieResponse.class);
-            callback.onDataReady(createFilmAdapterDataFromAlloha(response.getData()));
-        }
 
+        } catch (Exception e) {
+            callback.onError(e.getMessage() != null ? e.getMessage() : "Alloha fetch failed");
+        }
     }
 
+    private int toIntSafe(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
 
     private SelectorVoiceAdapter.AdapterData createFilmAdapterDataFromAlloha(MovieData movieData) {
         // Получаем данные фильма
@@ -297,20 +297,4 @@ public final class AllohaApiClient {
         }
         return builder.toString();
     }
-
-    // Простая валидация - проверяет, является ли строка валидным JSON
-    public static boolean isValidJson(String jsonString) {
-        if (jsonString == null || jsonString.trim().isEmpty()) {
-            return false;
-        }
-
-        try {
-            JsonParser.parseString(jsonString);
-            return true;
-        } catch (JsonSyntaxException e) {
-            return false;
-        }
-    }
-
-
 }

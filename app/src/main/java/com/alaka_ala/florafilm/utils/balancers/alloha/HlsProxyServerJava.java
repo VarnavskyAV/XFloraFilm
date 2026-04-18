@@ -4,6 +4,8 @@ import android.util.Base64;
 import android.util.Log;
 import android.webkit.CookieManager;
 
+import androidx.annotation.Nullable;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,6 +15,7 @@ import java.net.Socket;
 import java.net.URLDecoder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,11 +36,7 @@ public final class HlsProxyServerJava {
     private static final int PORT = 8080;
     private static final int PREFETCH = 2;
 
-    public void setActiveHeaders(Map<String, String> activeHeaders) {
-        this.activeHeaders = activeHeaders;
-    }
-
-    private Map<String, String> activeHeaders;
+    private final Map<String, String> activeHeaders;
     private final Runnable onSessionExpired;
     private final ExecutorService ioExecutor = Executors.newCachedThreadPool();
     private final ExecutorService acceptExecutor = Executors.newSingleThreadExecutor();
@@ -54,7 +53,6 @@ public final class HlsProxyServerJava {
     private volatile ConnectionPool connectionPool = new ConnectionPool(5, 15, TimeUnit.SECONDS);
     private volatile OkHttpClient client = buildClient(connectionPool);
 
-
     private final byte[] emptyTsPacket = new byte[188];
     private final Object cacheLock = new Object();
     private final LinkedHashMap<String, byte[]> cache = new LinkedHashMap<String, byte[]>(PREFETCH + 2, 0.75f, true) {
@@ -66,6 +64,21 @@ public final class HlsProxyServerJava {
     private final ConcurrentHashMap<String, CompletableFuture<byte[]>> inFlight = new ConcurrentHashMap<>();
     private final ArrayDeque<String> recentSegments = new ArrayDeque<>();
 
+    // Kotlin-port: rewrite segment URL to current session path after refresh.
+    @Nullable
+    private String rewriteToCurrentPath(String oldUrl) {
+        String master = activeMasterUrl;
+        if (master == null || master.isBlank()) return null;
+        int lastSlash = oldUrl.lastIndexOf('/');
+        if (lastSlash < 0) return null;
+        String segName = oldUrl.substring(lastSlash + 1);
+        if (segName.isBlank() || !segName.contains(".ts")) return null;
+        String newBase = master.substring(0, master.lastIndexOf('/') + 1);
+        String oldBase = oldUrl.substring(0, lastSlash + 1);
+        if (oldBase.equals(newBase)) return null;
+        return newBase + segName;
+    }
+
     public HlsProxyServerJava(Map<String, String> activeHeaders, Runnable onSessionExpired) {
         this.activeHeaders = Objects.requireNonNull(activeHeaders);
         this.onSessionExpired = onSessionExpired == null ? () -> {
@@ -76,13 +89,11 @@ public final class HlsProxyServerJava {
         emptyTsPacket[3] = 0x10;
     }
 
-
-
     public String getFixedMasterUrl() {
         return "http://127.0.0.1:" + PORT + "/master.m3u8";
     }
 
-    public void setMasterUrl(String url) {
+    public void updateMasterUrl(String url) {
         activeMasterUrl = url == null ? "" : url;
         sessionVersion++;
         ConnectionPool oldPool = connectionPool;
@@ -204,19 +215,56 @@ public final class HlsProxyServerJava {
             }
         }
         if (bytes == null) {
-            CompletableFuture.runAsync(() -> fetchSegmentFromFreshPlaylist(url), ioExecutor);
-            if (url.contains("-a1.ts") || url.contains("-a2.ts")) {
-                bytes = emptyTsPacket;
-            } else {
-                send503(out);
-                return;
+            // Kotlin fix: try rewrite to current session path immediately
+            String rewritten = rewriteToCurrentPath(url);
+            if (rewritten != null) {
+                Log.d(TAG, "Rewriting segment to current path: " + tail(rewritten));
+                byte[] rewrittenBytes = fetchBytes(rewritten);
+                if (rewrittenBytes != null) {
+                    synchronized (cacheLock) {
+                        cache.put(url, rewrittenBytes);
+                    }
+                    bytes = rewrittenBytes;
+                }
             }
         }
 
-        out.write(("HTTP/1.1 200 OK\r\nContent-Type: video/MP2T\r\nContent-Length: "
+        if (bytes == null) {
+            CompletableFuture.runAsync(() -> fetchSegmentFromFreshPlaylist(url), ioExecutor);
+            if (url.contains("-a1.ts") || url.contains("-a2.ts")) bytes = emptyTsPacket;
+            else { send503(out); return; }
+        }
+
+        String ct = (url.contains(".vtt") || url.contains(".webvtt")) ? "text/vtt"
+                : url.contains(".aac") ? "audio/aac"
+                : (url.contains(".m4s") || url.contains(".mp4")) ? "video/mp4"
+                : "video/MP2T";
+        out.write(("HTTP/1.1 200 OK\r\nContent-Type: " + ct + "\r\nContent-Length: "
                 + bytes.length + "\r\nConnection: close\r\n\r\n").getBytes());
         out.write(bytes);
         out.flush();
+
+        // Prefetch next segments (Kotlin behavior)
+        int idx;
+        synchronized (recentSegments) {
+            idx = indexOf(recentSegments, url);
+        }
+        if (idx >= 0) {
+            for (int i = 1; i <= PREFETCH; i++) {
+                String next;
+                synchronized (recentSegments) {
+                    next = getAt(recentSegments, idx + i);
+                }
+                if (next == null) break;
+                boolean cached;
+                synchronized (cacheLock) {
+                    cached = cache.containsKey(next);
+                }
+                if (cached) continue;
+                final String u = next;
+                CompletableFuture.runAsync(() -> getOrFetch(u), ioExecutor);
+            }
+        }
     }
 
     private String rewriteM3u8(String content, String baseUrl) {
@@ -345,13 +393,29 @@ public final class HlsProxyServerJava {
     private String fetchText(String url) {
         try (Response resp = client.newCall(buildRequest(url)).execute()) {
             if (!resp.isSuccessful()) {
+                Log.w(TAG, "fetchText HTTP " + resp.code() + " for " + head(url));
                 if (resp.code() == 403) {
                     connectionPool.evictAll();
+                }
+                // Retry once on 500/503 (CDN node hiccup)
+                if (resp.code() == 500 || resp.code() == 503) {
+                    connectionPool.evictAll();
+                    Request retry = buildRequest(url).newBuilder().header("Connection", "close").build();
+                    try (Response rr = client.newCall(retry).execute()) {
+                        if (!rr.isSuccessful()) {
+                            Log.w(TAG, "fetchText retry also HTTP " + rr.code() + " for " + head(url));
+                            // stream-balancer keeps 500 -> force session restart
+                            if (url != null && url.contains("stream-balancer")) onSessionExpired.run();
+                            return null;
+                        }
+                        return rr.body() != null ? rr.body().string() : null;
+                    }
                 }
                 return null;
             }
             return resp.body() != null ? resp.body().string() : null;
         } catch (Exception e) {
+            Log.w(TAG, "fetchText exception: " + e.getMessage());
             return null;
         }
     }
@@ -359,16 +423,65 @@ public final class HlsProxyServerJava {
     private byte[] fetchBytes(String url) {
         try (Response resp = client.newCall(buildRequest(url)).execute()) {
             if (resp.code() == 403) {
+                Log.w(TAG, "fetchBytes 403 for " + tail(url) + ", evicting and retrying");
                 connectionPool.evictAll();
                 Request retry = buildRequest(url).newBuilder().header("Connection", "close").build();
                 try (Response rr = client.newCall(retry).execute()) {
+                    if (!rr.isSuccessful()) Log.w(TAG, "fetchBytes retry also " + rr.code() + " for " + tail(url));
                     return rr.isSuccessful() && rr.body() != null ? rr.body().bytes() : null;
+                }
+            }
+            if (!resp.isSuccessful()) {
+                Log.w(TAG, "fetchBytes HTTP " + resp.code() + " for " + tail(url));
+                // Retry once on 500/503
+                if (resp.code() == 500 || resp.code() == 503) {
+                    connectionPool.evictAll();
+                    Request retry = buildRequest(url).newBuilder().header("Connection", "close").build();
+                    try (Response rr = client.newCall(retry).execute()) {
+                        if (!rr.isSuccessful()) {
+                            Log.w(TAG, "fetchBytes retry also " + rr.code() + " for " + tail(url));
+                            if (url != null && url.contains("stream-balancer")) onSessionExpired.run();
+                            return null;
+                        }
+                        return rr.body() != null ? rr.body().bytes() : null;
+                    }
                 }
             }
             return resp.isSuccessful() && resp.body() != null ? resp.body().bytes() : null;
         } catch (Exception e) {
+            Log.w(TAG, "fetchBytes exception: " + e.getMessage());
             return null;
         }
+    }
+
+    private static String head(String s) {
+        if (s == null) return "";
+        return s.length() <= 80 ? s : s.substring(0, 80);
+    }
+
+    private static String tail(String s) {
+        if (s == null) return "";
+        return s.length() <= 60 ? s : s.substring(s.length() - 60);
+    }
+
+    private static int indexOf(ArrayDeque<String> dq, String value) {
+        int i = 0;
+        for (String v : dq) {
+            if (value.equals(v)) return i;
+            i++;
+        }
+        return -1;
+    }
+
+    @Nullable
+    private static String getAt(ArrayDeque<String> dq, int index) {
+        if (index < 0) return null;
+        int i = 0;
+        for (String v : dq) {
+            if (i == index) return v;
+            i++;
+        }
+        return null;
     }
 
     private Request buildRequest(String url) {
@@ -377,6 +490,10 @@ public final class HlsProxyServerJava {
                 .header("Origin", activeHeaders.getOrDefault("origin", ""))
                 .header("Referer", activeHeaders.getOrDefault("referer", ""))
                 .header("Accept", "*/*");
+        // Prevent stale keep-alive connections to CDN after pause / balancer hiccups
+        if (url != null && url.contains("stream-balancer")) {
+            builder.header("Connection", "close");
+        }
         try {
             String cookie = CookieManager.getInstance().getCookie(url);
             if (cookie != null && !cookie.isBlank()) {

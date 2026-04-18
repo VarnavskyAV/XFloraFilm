@@ -66,6 +66,14 @@ public class FilmDetailsFragment extends Fragment {
         return binding.getRoot();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).hideBottomNavigationView();
+        }
+    }
+
     private void setupViews() {
         binding.progressBar.setVisibility(View.VISIBLE);
         binding.contentGroup.setVisibility(View.GONE);

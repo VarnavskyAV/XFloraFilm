@@ -1,314 +1,146 @@
-# CodeJava
+# Alloha balancer (XFloraFilm)
 
-Подробная документация Java-переноса логики Alloha-parser(Kotlin) из библиотеки (Ernous (Ernela)).<br>
-(https://github.com/Ernous/alloha-parser-kotlin)
+Этот пакет реализует воспроизведение Alloha в стиле “как в Kotlin-референсе”:
 
----
-## Быстрый старт
+- **WebView** (скрытый) поднимает iframe-плеер Alloha и перехватывает сетевую активность JS.
+- Из WebView извлекаются **runtime headers** (`authorizations`, `accepts-controls`, `origin`, `referer`, `user-agent`, cookie, и т.д.).
+- Из `bnsi` извлекаются ссылки качества вида `primaryUrl or fallbackUrl`.
+- Локальный прокси `HlsProxyServerJava` (localhost:8080) выступает как **единственная точка**, откуда ExoPlayer читает HLS.
+- При протухании токенов, CDN failover и ошибках `500/503` поток восстанавливается: обновляется `master.m3u8`, переписываются сегменты на актуальный путь, делаются ретраи/evict соединений.
 
-````Java
-AllohaApiClient allohaApiClient = new AllohaApiClient();
-        AllohaParserJava parser = new AllohaParserJava(getApplicationContext());
-        new Thread(() -> {
-            try {
-                AllohaModels.AllohaApiResult resp = allohaApiClient.fetch("4cd98e08f1e1f0273692e35b16b690", "666");
+## TL;DR (самая важная идея)
 
-                parser.parse(resp.movieIframe, new AllohaParserJava.Callback() {
-                    @Override
-                    public void onHlsLinksReceived(String json, Map<String, String> extraHeaders) {
-                        Log.i("MainActivity", json);
-                        for(Map.Entry headerEntry : extraHeaders.entrySet()) {
-                            if(headerEntry != null){
-                                Log.v("MainActivity" + ".onHLSLinkRecieved:",headerEntry.toString());
-                            }
-                        }
-                    }
+**ExoPlayer всегда играет `http://127.0.0.1:8080/master.m3u8`.**
 
-                    @Override
-                    public void onConfigUpdate(String edgeHash, int ttlSeconds, Map<String, String> extraHeaders) {
-                        Log.wtf("MainActivity","edgehash:"+edgeHash+" ,ttlseconds"+String.valueOf(ttlSeconds));
-                    }
+А всё “магическое” (обновление CDN URL, токенов, заголовков, recovery) происходит внутри:
 
-                    @Override
-                    public void onM3u8Refreshed(String url, Map<String, String> extraHeaders) {
-                        HlsProxyServerJava hlsProxyServerJava = new HlsProxyServerJava(extraHeaders, () -> {
-
-                        });
-                        hlsProxyServerJava.updateMasterUrl(url);
-                        try {
-                            hlsProxyServerJava.start();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                        initPlayer(hlsProxyServerJava.getFixedMasterUrl());
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        Log.e("MainActivity",error);
-                    }
-                });
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }).start();
-````
-
+- `AllohaStreaming` (управляет сессией WebView и обновляет прокси)
+- `HlsProxyServerJava` (проксирует HLS и лечит ошибки)
 
 ---
 
-## Что находится в папке
+## Визуализация (flow)
 
-- `AllohaParserJava.java`  
-  WebView-парсер: загружает iframe-плеер, перехватывает JS/XHR/fetch/WebSocket события, собирает рабочие заголовки и ссылки на HLS.
-
-- `HlsProxyServerJava.java`  
-  Локальный HTTP proxy для HLS (`http://127.0.0.1:8080`), который:
-  - отдает `master.m3u8`,
-  - переписывает все URI внутри плейлистов на локальный proxy,
-  - проксирует и кеширует сегменты,
-  - делает prefetch и recovery после 403.
-
-- `AllohaHttpTraceJava.java`  
-  Трассировка в формате JSONL (`alloha_http_trace.jsonl`): записывает сетевые round-trip и JS-заголовки для отладки.
-
-- `AllohaApiClient.java`  
-  Клиент к `https://api.alloha.tv`, который получает мета-данные (фильм/сериал, сезоны, эпизоды, переводы, iframe).
-
-- `AllohaModels.java`  
-  DTO/модели для результата API.
+```mermaid
+flowchart LR
+  UI[Player/Strategy/AllohaStrategy] -->|iframeUrl| S[AllohaStreaming]
+  S -->|main thread| WV[AllohaParserJava\nWebView + JS bridge]
+  WV -->|bnsi json| B[AllohaBnsiParserJava\nprimary/fallback]
+  WV -->|headers snapshots\nconfig_update/stream_push| H[(activeHeaders\nConcurrentHashMap)]
+  S -->|start once| P[HlsProxyServerJava\nlocalhost:8080]
+  H --> P
+  WV -->|m3u8_refresh URL| S
+  S -->|proxy.updateMasterUrl(m3u8)| P
+  EXO[ExoPlayer] -->|always reads| P
+  P -->|real CDN requests| CDN[(Alloha CDN)]
+```
 
 ---
 
-## Общий жизненный цикл (как все работает вместе)
+## Визуализация (жизненный цикл сессии)
 
-1. `AllohaApiClient.fetch(token, kpId)` возвращает структуру контента и `iframeUrl`.
-2. `AllohaParserJava.parse(iframeUrl, callback)` поднимает WebView и ждет:
-  - `onReady(...)` (bnsi + базовые stream headers),
-  - `onConfigUpdate(...)` (обновление CDN-токенов),
-  - `onM3u8Refreshed(...)` (обновление master.m3u8 URL).
-3. Эти заголовки передаются в `HlsProxyServerJava` через общую `activeHeaders` map.
-4. Плеер играет не прямой CDN URL, а локальный `fixedMasterUrl` proxy-сервера.
-5. Proxy подставляет актуальные заголовки в запросы к CDN, кеширует сегменты и пытается восстановиться при 403.
-6. `AllohaHttpTraceJava` фиксирует, что реально улетело в сеть и что пришло из JS.
+```mermaid
+sequenceDiagram
+  participant A as AllohaStrategy
+  participant S as AllohaStreaming
+  participant W as WebView (AllohaParserJava)
+  participant P as Local HLS Proxy
+  participant C as CDN
 
----
-
-## Что такое `ttlSeconds`
-
-`ttlSeconds` приходит в callback `onConfigUpdate(edgeHash, ttlSeconds, headers)` и означает:
-
-- **TTL (time-to-live) в секундах** для текущего CDN/edge токена (`edge_hash` / `accepts-controls`).
-- По истечении TTL токены становятся устаревшими и CDN чаще отвечает 403.
-- Поэтому TTL используют для:
-  - планового (проактивного) обновления сессии до истечения,
-  - понимания, когда пора перезапрашивать/перезапускать поток.
-
-Проще: `ttlSeconds` = "сколько еще живы текущие auth-параметры стрима".
-
----
-
-## Документация по классам и методам
-
-## `AllohaApiClient`
-
-### `AllohaApiResult fetch(String token, String kpId)`
-- Назначение: получить и распарсить ответ API Alloha.
-- Параметры:
-  - `token` — API token Alloha.
-  - `kpId` — ID контента (Kinopoisk ID).
-- Возвращает:
-  - `AllohaApiResult` с `isSerial`, `movieIframe`, `seasons/...`.
-- Исключения:
-  - пробрасывает `Exception`, если сеть/JSON сломан.
-
-### `String requestUnsafe(String url)` (private)
-- Назначение: выполнить HTTPS GET с отключенной валидацией сертификата/hostname.
-- Используется только для совместимости с оригинальной логикой.
+  A->>S: start(iframeUrl)
+  S->>W: create WebView + load wrapper HTML
+  W-->>S: onHlsLinksReceived(bnsi,jsonHeaders)
+  S-->>A: onQualities(quality->primary/fallback)
+  W-->>S: onConfigUpdate(edge_hash, ttlSeconds, headers)
+  W-->>S: onM3u8Refreshed(master.m3u8 URL, headers)
+  S->>P: start() (once)
+  S->>P: updateMasterUrl(master.m3u8)
+  Note over A,P: ExoPlayer reads only localhost/master.m3u8
+  P->>C: fetch playlists/segments with activeHeaders
+  C-->>P: 200 OK (or 403/500/503)
+  P-->>P: retry/evict/rewrite/recover
+  alt session expired / repeated 500
+    P-->>S: onSessionExpired
+    S->>W: restart session (parser only, proxy stays alive)
+  end
+```
 
 ---
 
-## `AllohaModels`
+## Ключевые классы
 
-### `TranslationInfo`
-- `id` — ID перевода.
-- `name` — название озвучки/перевода.
-- `iframeUrl` — iframe URL для этого перевода.
+### `AllohaStreaming`
 
-### `EpisodeInfo`
-- `num` — номер эпизода строкой.
-- `translations` — список доступных переводов.
+Задача: управлять **WebView-сессией** и обновлять прокси, НЕ ломая ExoPlayer.
 
-### `SeasonInfo`
-- `num` — номер сезона строкой.
-- `episodes` — список эпизодов.
+Особенности:
 
-### `AllohaApiResult`
-- `title` — название контента.
-- `isSerial` — сериал или фильм.
-- `movieIframe` — iframe для фильма (если это не сериал).
-- `seasons` — сезоны/эпизоды/переводы (если сериал).
+- **WebView создается строго на main thread**.
+- При рестарте сессии:
+  - **не останавливает прокси** (иначе ExoPlayer ловит EOF),
+  - перезапускает только WebView-парсер,
+  - рестарты **debounced** (защита от циклов при плохом CDN).
+- На `onM3u8Refreshed` делает `proxy.updateMasterUrl(url)` — это “переключает” поток.
+- `tryFallbackOnce()` (по `onPlayerError`) переключает на **fallback URL** из `bnsi` (вторая ссылка после `"or"`).
 
----
+### `AllohaParserJava`
 
-## `AllohaParserJava`
+Задача: изнутри iframe собрать:
 
-### `AllohaParserJava(Context context)`
-- Инициализирует `WebView`:
-  - JS + DOM storage,
-  - отключение user-gesture ограничения на media,
-  - cookie + third-party cookie,
-  - WebChromeClient + SSL proceed.
+- `bnsi` (JSON, где `hlsSource[].quality` содержит `primary or fallback`),
+- **заголовки**, которые реально использует браузерный плеер,
+- `m3u8_refresh` (актуальный `master.m3u8`),
+- `config_update` по WebSocket: `edge_hash`, `ttlSeconds`,
+- heartbeat `playing` каждые ~25s, чтобы сессия не считалась “мертвой”.
 
-### `void rotateUserAgent()`
-- Переключает текущий user-agent на следующий в списке.
-- Нужен для анти-403/антибот поведенческой ротации.
+### `HlsProxyServerJava`
 
-### `void parse(String iframeUrl, Callback callback)`
-- Главный старт парсинга сессии.
-- Параметры:
-  - `iframeUrl` — URL плеерного iframe.
-  - `callback` — обработчики событий сессии.
-- Что делает:
-  - создает JS bridge `AndroidBridge`,
-  - внедряет HTML wrapper c iframe и перехватчиками,
-  - слушает XHR/fetch/WebSocket внутри iframe,
-  - передает в Android:
-    - `onReady(jsonResponse, headersJson)`,
-    - `onConfigUpdate(edgeHash, ttl, headersJson)`,
-    - `onM3u8Refreshed(url, headersJson)`,
-    - `onStreamHeaders(headersJson)`.
+Задача: дать ExoPlayer стабильный локальный источник:
 
-### `void release()`
-- Уничтожает `WebView`.
+- `/master.m3u8` — отдает текущий `activeMasterUrl` (через `updateMasterUrl`).
+- `/proxy?url=...` — проксирует плейлисты/сегменты.
 
-### `Callback` (interface)
-- `onHlsLinksReceived(String json, Map<String,String> extraHeaders)`  
-  Первичная готовность: получены `hlsSource` и начальные headers.
-- `onConfigUpdate(String edgeHash, int ttlSeconds, Map<String,String> extraHeaders)`  
-  Обновление токенов/хеша edge. `ttlSeconds` — срок действия.
-- `onM3u8Refreshed(String url, Map<String,String> extraHeaders)`  
-  Новый master.m3u8 (например после CDN failover).
-- `onStreamHeadersUpdated(Map<String,String> extraHeaders)`  
-  Пуш текущих stream headers в процессе.
-- `onError(String error)`  
-  Ошибка парсинга/загрузки.
+Встроенные “лечилки”:
+
+- переписывание сегментов на текущий путь после refresh (когда старые подписи протухли),
+- `evictAll()` + `Connection: close` для `stream-balancer`,
+- retry на `403`, `500`, `503`,
+- recovery сегмента по свежему playlist,
+- prefetch следующих сегментов,
+- при “плохом” `stream-balancer` может дернуть `onSessionExpired` → `AllohaStreaming` перезапустит WebView-сессию.
+
+### `AllohaBnsiParserJava`
+
+Разбирает `bnsi` и возвращает:
+
+- `quality -> (primaryUrl, fallbackUrl)`
+
+Формат источника: строка вида:
+
+```
+https://primary/master.m3u8 or https://fallback/master.m3u8
+```
 
 ---
 
-## `HlsProxyServerJava`
+## Почему иногда “падает и потом снова играет”
 
-### `HlsProxyServerJava(Map<String,String> activeHeaders, Runnable onSessionExpired)`
-- Параметры:
-  - `activeHeaders` — живая map текущих stream headers (origin/referer/user-agent/authorizations/accepts-controls/...).
-  - `onSessionExpired` — callback, когда recovery не удался и нужна полная перезагрузка сессии.
+Если CDN отдает `500/503`, а ExoPlayer получил ошибку сегмента, то:
 
-### `void start()`
-- Поднимает локальный сервер на `8080`.
+- WebView может успеть обновить токены/URL,
+- прокси переключится на новый `master.m3u8`,
+- повторный `Play` “попадает” уже на рабочий узел.
 
-### `void stop()`
-- Останавливает server socket и executors.
+Стабилизация достигается за счет:
 
-### `void updateMasterUrl(String url)`
-- Обновляет активный master URL.
-- Сбрасывает кеш/соединения и увеличивает версию сессии.
-- Нужен при `m3u8 refresh` и при перезапусках сессии.
-
-### `String getFixedMasterUrl()`
-- Возвращает стабильный URL для плеера: `http://127.0.0.1:8080/master.m3u8`.
-- Плеер всегда играет его; внутри proxy уже прокидывает актуальный CDN URL.
-
-### `String proxyUrl(String originalUrl)`
-- Кодирует реальный URL в `/proxy?url=...`.
-
-### `handleConnection(...)` (private)
-- Парсит входящий HTTP запрос:
-  - `/master.m3u8` -> `servePlaylist(activeMasterUrl)`,
-  - `/proxy?url=...` -> playlist или segment.
-
-### `servePlaylist(String url, OutputStream out)` (private)
-- Загружает playlist с CDN (`fetchText`),
-- переписывает URI (`rewriteM3u8`),
-- отдает клиенту переписанный m3u8.
-
-### `serveSegment(String url, OutputStream out)` (private)
-- Отдает segment из кеша или сети (`fetchBytes`),
-- при фейле запускает recovery через `fetchSegmentFromFreshPlaylist`.
-
-### `rewriteM3u8(String content, String baseUrl)` (private)
-- Переписывает:
-  - обычные строки-URL,
-  - `URI="..."` в тегах (аудио/субтитры/keys),
-    чтобы все шло через локальный proxy.
-
-### `byte[] getOrFetch(String url)` (private)
-- Дедупликация одновременных запросов к одному сегменту через `inFlight`.
-
-### `byte[] fetchSegmentFromFreshPlaylist(String failedUrl)` (private)
-- Recovery-логика:
-  - ждет новую версию сессии,
-  - берет свежий master/variant,
-  - ищет сегмент с тем же именем,
-  - пробует скачать заново.
-- При окончательной неудаче вызывает `onSessionExpired`.
-
-### `String fetchText(String url)` / `byte[] fetchBytes(String url)` (private)
-- Сетевые методы OkHttp.
-- При 403 делают evict connection pool и retry (для bytes).
-
-### `Request buildRequest(String url)` (private)
-- Собирает запрос к CDN из `activeHeaders`:
-  - `User-Agent`, `Origin`, `Referer`, `Accept`,
-  - `accepts-controls`, `authorizations`,
-  - `sec-fetch-*`, `accept-language`,
-  - `Cookie` из WebView `CookieManager`.
+- ретраев + `Connection: close` + evict,
+- рестарта WebView-сессии **без остановки прокси**,
+- fallback URL из `bnsi`.
 
 ---
 
-## `AllohaHttpTraceJava`
+## Где смотреть отладку
 
-### `File traceFile(Context context)`
-- Путь к trace-файлу (`files/alloha_http_trace.jsonl`).
-
-### `void reset(Context context)`
-- Сбрасывает sequence и пишет `session_start` в trace.
-
-### `void logOkHttpRoundTrip(Context context, Request request, Response response, String error)`
-- Логирует один HTTP round-trip:
-  - URL, метод, request headers, status/response headers или error.
-
-### `void logJsHeaders(Context context, String source, Map<String,String> headers)`
-- Логирует snapshot заголовков, собранных из JS.
-- `source` обычно:
-  - `onReady`,
-  - `config_update`,
-  - `m3u8_refresh`,
-  - `stream_push`.
-- Для `stream_push` дубликаты фильтруются по паре `authorizations + accepts-controls`.
-
----
-
-## Важные параметры (быстрый справочник)
-
-- `token` — ключ API Alloha.
-- `kpId` — идентификатор фильма/сериала.
-- `iframeUrl` — URL player iframe.
-- `edgeHash` — актуальный edge/CDN hash (обычно идет в `accepts-controls`).
-- `ttlSeconds` — срок жизни `edgeHash` и связанных stream-токенов.
-- `extraHeaders` — критичные runtime headers для CDN-доступа:
-  - `authorizations`,
-  - `accepts-controls`,
-  - `origin`,
-  - `referer`,
-  - `user-agent`,
-  - иногда `sec-fetch-*`, `accept-language`, `cookie`.
-- `activeMasterUrl` — текущий реальный master.m3u8, который proxy раздает через `fixedMasterUrl`.
-
----
-
-## Что важно помнить
-
-- Kotlin-исходники проекта не модифицировались.
-- Папка `CodeJava` содержит отдельную Java-реализацию логики.
-- Для интеграции в приложение нужно подключить эти Java-классы из Activity/Service/Player слоя.
+- Логи `AllohaParserJS` — heartbeat, WS hook, config_update.
+- Логи `HlsProxyJava` — HTTP коды от CDN, ретраи, rewrite сегментов, recovery.
+- Файл trace (если используешь): `alloha_http_trace.jsonl`.

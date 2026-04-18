@@ -132,6 +132,9 @@ public final class AllohaParserJava {
                     if (!parsed) {
                         return;
                     }
+                    mainHandler.post(() -> {
+                        CookieManager.getInstance().flush();
+                    });
                     Map<String, String> headers = parseHeaders(headersJson);
                     mainHandler.post(() -> callback.onStreamHeadersUpdated(headers));
                 }
@@ -198,31 +201,316 @@ public final class AllohaParserJava {
     }
 
     private String buildWrapperHtml(String iframeUrl) {
-        return "<html><body style=\"margin:0;padding:0;background:black;\">"
-                + "<iframe id=\"alloha_iframe\" src=\"" + iframeUrl + "\" width=\"100%\" height=\"100%\" frameborder=\"0\" allowfullscreen></iframe>"
-                + "<script>"
-                + "try{Object.defineProperty(document,'visibilityState',{get:()=> 'visible'});Object.defineProperty(document,'hidden',{get:()=> false});}catch(e){}"
-                + "var iframe=document.getElementById('alloha_iframe');"
-                + "iframe.onload=function(){try{var w=iframe.contentWindow;var bnsiData=null;var hdr={};var done=false;var lastM3u8=null;var _lastEdgeHash=null;"
-                + "function put(k,v){if(!k||!v)return;hdr[String(k).toLowerCase()]=String(v);if(done){try{AndroidBridge.onStreamHeaders(JSON.stringify(hdr));}catch(e){}}}"
-                + "function check(){if(done)return;var a=!!hdr['authorizations'];var c=!!hdr['accepts-controls'];if(bnsiData&&a&&c){done=true;AndroidBridge.onReady(bnsiData,JSON.stringify(hdr));}}"
-                + "put('origin',w.location.origin);put('referer',w.location.origin+'/');put('user-agent',w.navigator.userAgent);put('accept','*/*');"
-                + "var oOpen=w.XMLHttpRequest.prototype.open;"
-                + "w.XMLHttpRequest.prototype.open=function(m,u){this._u=u;this.addEventListener('load',function(){var r=this.responseURL||'';"
-                + "if(r.indexOf('/bnsi/')!==-1&&!done){bnsiData=this.responseText;check();}"
-                + "if(done&&r.indexOf('master.m3u8')!==-1&&r!==lastM3u8){lastM3u8=r;AndroidBridge.onM3u8Refreshed(r,JSON.stringify(hdr));}"
-                + "});return oOpen.apply(this,arguments);};"
-                + "var oSet=w.XMLHttpRequest.prototype.setRequestHeader;"
-                + "w.XMLHttpRequest.prototype.setRequestHeader=function(n,v){put(n,v);if((this._u||'').indexOf('.m3u8')!==-1||(this._u||'').indexOf('.ts')!==-1)check();return oSet.apply(this,arguments);};"
-                + "var oFetch=w.fetch;w.fetch=function(input,init){try{var u=typeof input==='string'?input:(input&&input.url?input.url:'');"
-                + "if(init&&init.headers){if(typeof init.headers.forEach==='function'){init.headers.forEach(function(v,k){put(k,v);});}else{for(var hk in init.headers){put(hk,init.headers[hk]);}}}"
-                + "if(u&&(u.indexOf('.m3u8')!==-1||u.indexOf('.ts')!==-1))check();}catch(e){}return oFetch.apply(this,arguments);};"
-                + "var oSend=w.WebSocket.prototype.send;"
-                + "w.WebSocket.prototype.send=function(data){if(!this.__alloha_hooked){this.__alloha_hooked=true;var ws=this;"
-                + "ws.addEventListener('message',function(ev){try{var msg=JSON.parse(ev.data);if(msg&&msg.type==='config_update'&&msg.edge_hash&&msg.edge_hash!==_lastEdgeHash){_lastEdgeHash=msg.edge_hash;hdr['accepts-controls']=msg.edge_hash;AndroidBridge.onConfigUpdate(msg.edge_hash,msg.ttl||120,JSON.stringify(hdr));}}catch(e){}});}"
-                + "return oSend.call(this,data);};"
-                + "setInterval(function(){if(!done){var b=w.document.querySelector('.allplay__play-btn');if(b)b.click();var v=w.document.querySelector('video');if(v){v.muted=true;if(v.paused)v.play().catch(function(){});}}},1500);"
-                + "}catch(e){AndroidBridge.onLog('JS Error: '+e);}};"
-                + "</script></body></html>";
+        return "<html>\n" +
+                "  <body style=\"margin:0;padding:0;background:black;\">\n" +
+                "    <iframe\n" +
+                "      id=\"alloha_iframe\"\n" +
+                "      src=\"" + iframeUrl + "\"\n" +
+                "      width=\"100%\"\n" +
+                "      height=\"100%\"\n" +
+                "      frameborder=\"0\"\n" +
+                "      allowfullscreen\n" +
+                "    ></iframe>\n" +
+                "\n" +
+                "    <script>\n" +
+                "      (function () {\n" +
+                "        try {\n" +
+                "          Object.defineProperty(document, \"visibilityState\", { get: () => \"visible\" });\n" +
+                "          Object.defineProperty(document, \"hidden\", { get: () => false });\n" +
+                "        } catch (e) {}\n" +
+                "\n" +
+                "        var iframe = document.getElementById(\"alloha_iframe\");\n" +
+                "        if (!iframe) return;\n" +
+                "\n" +
+                "        iframe.onload = function () {\n" +
+                "          try {\n" +
+                "            var iframeWin = iframe.contentWindow;\n" +
+                "\n" +
+                "            try {\n" +
+                "              Object.defineProperty(iframeWin.document, \"visibilityState\", { get: () => \"visible\" });\n" +
+                "              Object.defineProperty(iframeWin.document, \"hidden\", { get: () => false });\n" +
+                "            } catch (e) {}\n" +
+                "\n" +
+                "            var bnsiData = null;\n" +
+                "            var capturedHeaders = {};\n" +
+                "            var isDone = false;\n" +
+                "            var lastM3u8Url = null;\n" +
+                "\n" +
+                "            var _pushHdrTimer = null;\n" +
+                "            function schedulePushStreamHeaders() {\n" +
+                "              if (!isDone) return;\n" +
+                "              if (_pushHdrTimer) clearTimeout(_pushHdrTimer);\n" +
+                "              _pushHdrTimer = setTimeout(function () {\n" +
+                "                _pushHdrTimer = null;\n" +
+                "                try {\n" +
+                "                  AndroidBridge.onStreamHeaders(JSON.stringify(capturedHeaders));\n" +
+                "                } catch (e) {}\n" +
+                "              }, 40);\n" +
+                "            }\n" +
+                "\n" +
+                "            function putHeader(name, value) {\n" +
+                "              if (!name || !value) return;\n" +
+                "              capturedHeaders[String(name).toLowerCase()] = String(value);\n" +
+                "              schedulePushStreamHeaders();\n" +
+                "            }\n" +
+                "\n" +
+                "            function checkDone() {\n" +
+                "              if (isDone) return;\n" +
+                "              var hasAuth = false,\n" +
+                "                hasAccept = false;\n" +
+                "              for (var k in capturedHeaders) {\n" +
+                "                if (k === \"authorizations\") hasAuth = true;\n" +
+                "                if (k === \"accepts-controls\") hasAccept = true;\n" +
+                "              }\n" +
+                "              if (bnsiData && hasAuth && hasAccept) {\n" +
+                "                isDone = true;\n" +
+                "                AndroidBridge.onReady(bnsiData, JSON.stringify(capturedHeaders));\n" +
+                "              }\n" +
+                "            }\n" +
+                "\n" +
+                "            putHeader(\"origin\", iframeWin.location.origin);\n" +
+                "            putHeader(\"referer\", iframeWin.location.origin + \"/\");\n" +
+                "            putHeader(\"user-agent\", iframeWin.navigator.userAgent);\n" +
+                "            putHeader(\"accept\", \"*/*\");\n" +
+                "            putHeader(\"sec-fetch-dest\", \"empty\");\n" +
+                "            putHeader(\"sec-fetch-mode\", \"cors\");\n" +
+                "            putHeader(\"sec-fetch-site\", \"cross-site\");\n" +
+                "\n" +
+                "            // ---------------- XHR intercept ----------------\n" +
+                "            var originalOpen = iframeWin.XMLHttpRequest.prototype.open;\n" +
+                "            iframeWin.XMLHttpRequest.prototype.open = function (method, url) {\n" +
+                "              this._allohaUrl = url;\n" +
+                "              this.addEventListener(\"load\", function () {\n" +
+                "                var rUrl = this.responseURL || \"\";\n" +
+                "\n" +
+                "                if (rUrl.indexOf(\"/bnsi/\") !== -1 && !isDone) {\n" +
+                "                  bnsiData = this.responseText;\n" +
+                "                  checkDone();\n" +
+                "                }\n" +
+                "\n" +
+                "                if (isDone && rUrl.indexOf(\"master.m3u8\") !== -1 && rUrl !== lastM3u8Url) {\n" +
+                "                  lastM3u8Url = rUrl;\n" +
+                "                  try {\n" +
+                "                    AndroidBridge.onM3u8Refreshed(rUrl, JSON.stringify(capturedHeaders));\n" +
+                "                  } catch (e) {\n" +
+                "                    AndroidBridge.onLog(\"onM3u8Refreshed error: \" + e);\n" +
+                "                  }\n" +
+                "                }\n" +
+                "              });\n" +
+                "              return originalOpen.apply(this, arguments);\n" +
+                "            };\n" +
+                "\n" +
+                "            var originalSetHeader = iframeWin.XMLHttpRequest.prototype.setRequestHeader;\n" +
+                "            iframeWin.XMLHttpRequest.prototype.setRequestHeader = function (name, value) {\n" +
+                "              putHeader(name, value);\n" +
+                "              var url = this._allohaUrl || \"\";\n" +
+                "              if (url.indexOf(\".m3u8\") !== -1 || url.indexOf(\".ts\") !== -1) {\n" +
+                "                checkDone();\n" +
+                "              }\n" +
+                "              return originalSetHeader.apply(this, arguments);\n" +
+                "            };\n" +
+                "\n" +
+                "            // ---------------- Fetch intercept + fallback ----------------\n" +
+                "            var _fallbackHost = null;\n" +
+                "            var _primaryHost = null;\n" +
+                "            var _fallbackMasterUrl = null;\n" +
+                "\n" +
+                "            function extractFallbackHost() {\n" +
+                "              if (_fallbackHost || !bnsiData) return;\n" +
+                "              try {\n" +
+                "                var d = JSON.parse(bnsiData);\n" +
+                "                var src = d.hlsSource;\n" +
+                "                if (src && src[0] && src[0].quality) {\n" +
+                "                  var q = src[0].quality;\n" +
+                "                  var key = Object.keys(q)[0];\n" +
+                "                  var urls = String(q[key] || \"\").split(\" or \");\n" +
+                "                  if (urls.length > 1) {\n" +
+                "                    var m = urls[0].match(/https?:\\/\\/([^/]+)/);\n" +
+                "                    if (m) _primaryHost = m[1];\n" +
+                "\n" +
+                "                    var fb = urls[1].trim();\n" +
+                "                    var m2 = fb.match(/https?:\\/\\/([^/]+)/);\n" +
+                "                    if (m2) {\n" +
+                "                      _fallbackHost = m2[1];\n" +
+                "                      _fallbackMasterUrl = fb;\n" +
+                "                    }\n" +
+                "\n" +
+                "                    AndroidBridge.onLog(\n" +
+                "                      \"CDN hosts: primary=\" + _primaryHost + \" fallback=\" + _fallbackHost\n" +
+                "                    );\n" +
+                "                  }\n" +
+                "                }\n" +
+                "              } catch (e) {\n" +
+                "                AndroidBridge.onLog(\"extractFallback err: \" + e);\n" +
+                "              }\n" +
+                "            }\n" +
+                "\n" +
+                "            var originalFetch = iframeWin.fetch;\n" +
+                "            iframeWin.fetch = function (input, init) {\n" +
+                "              try {\n" +
+                "                var url =\n" +
+                "                  typeof input === \"string\" ? input : input && input.url ? input.url : \"\";\n" +
+                "\n" +
+                "                if (init && init.headers) {\n" +
+                "                  if (typeof init.headers.forEach === \"function\") {\n" +
+                "                    init.headers.forEach(function (v, k) {\n" +
+                "                      putHeader(k, v);\n" +
+                "                    });\n" +
+                "                  } else {\n" +
+                "                    for (var hk in init.headers) {\n" +
+                "                      putHeader(hk, init.headers[hk]);\n" +
+                "                    }\n" +
+                "                  }\n" +
+                "                }\n" +
+                "\n" +
+                "                if (url && (url.indexOf(\".m3u8\") !== -1 || url.indexOf(\".ts\") !== -1)) {\n" +
+                "                  checkDone();\n" +
+                "                  extractFallbackHost();\n" +
+                "\n" +
+                "                  if (_primaryHost && _fallbackHost && url.indexOf(_primaryHost) !== -1) {\n" +
+                "                    var fallbackUrl;\n" +
+                "                    if (url.indexOf(\"master.m3u8\") !== -1 && _fallbackMasterUrl) {\n" +
+                "                      fallbackUrl = _fallbackMasterUrl;\n" +
+                "                    } else {\n" +
+                "                      fallbackUrl = url.replace(_primaryHost, _fallbackHost);\n" +
+                "                    }\n" +
+                "\n" +
+                "                    var self = this;\n" +
+                "                    return originalFetch.apply(self, [input, init]).then(function (resp) {\n" +
+                "                      if (resp.status === 500 || resp.status === 503 || resp.status === 403) {\n" +
+                "                        AndroidBridge.onLog(\n" +
+                "                          \"fetch \" +\n" +
+                "                            resp.status +\n" +
+                "                            \" on primary, retrying fallback: \" +\n" +
+                "                            fallbackUrl\n" +
+                "                        );\n" +
+                "                        return originalFetch.apply(iframeWin, [fallbackUrl, init]);\n" +
+                "                      }\n" +
+                "                      return resp;\n" +
+                "                    });\n" +
+                "                  }\n" +
+                "                }\n" +
+                "              } catch (e) {\n" +
+                "                AndroidBridge.onLog(\"fetch intercept err: \" + e);\n" +
+                "              }\n" +
+                "              return originalFetch.apply(this, arguments);\n" +
+                "            };\n" +
+                "\n" +
+                "            // ---------------- WebSocket patch + heartbeat ----------------\n" +
+                "            var _origSend = iframeWin.WebSocket.prototype.send;\n" +
+                "            var _allohaWs = null;\n" +
+                "            var _heartbeatTimer = null;\n" +
+                "            var _sessionStart = Date.now();\n" +
+                "            var _lastEdgeHash = null;\n" +
+                "\n" +
+                "            function startHeartbeat(ws) {\n" +
+                "              if (_heartbeatTimer) clearInterval(_heartbeatTimer);\n" +
+                "              _heartbeatTimer = setInterval(function () {\n" +
+                "                if (!isDone) return;\n" +
+                "                if (!ws || ws.readyState !== 1) return; // OPEN\n" +
+                "\n" +
+                "                var t = Math.floor((Date.now() - _sessionStart) / 1000);\n" +
+                "                try {\n" +
+                "                  _origSend.call(\n" +
+                "                    ws,\n" +
+                "                    JSON.stringify({\n" +
+                "                      type: \"playing\",\n" +
+                "                      current_time: t,\n" +
+                "                      resolution: \"1080\",\n" +
+                "                      track_id: \"1\",\n" +
+                "                      speed: 1,\n" +
+                "                      subtitle: 0,\n" +
+                "                      ts: Date.now(),\n" +
+                "                    })\n" +
+                "                  );\n" +
+                "                  AndroidBridge.onLog(\"Heartbeat sent t=\" + t);\n" +
+                "                } catch (e) {\n" +
+                "                  AndroidBridge.onLog(\"Heartbeat err: \" + e);\n" +
+                "                }\n" +
+                "              }, 25000);\n" +
+                "            }\n" +
+                "\n" +
+                "            iframeWin.WebSocket.prototype.send = function (data) {\n" +
+                "              if (!this.__alloha_hooked) {\n" +
+                "                this.__alloha_hooked = true;\n" +
+                "                var ws = this;\n" +
+                "                _allohaWs = ws;\n" +
+                "                _sessionStart = Date.now();\n" +
+                "\n" +
+                "                AndroidBridge.onLog(\"WSS hooked via send()\");\n" +
+                "\n" +
+                "                ws.addEventListener(\"message\", function (event) {\n" +
+                "                  try {\n" +
+                "                    var msg = JSON.parse(event.data);\n" +
+                "                    if (msg && msg.type === \"config_update\" && msg.edge_hash) {\n" +
+                "                      if (msg.edge_hash !== _lastEdgeHash) {\n" +
+                "                        _lastEdgeHash = msg.edge_hash;\n" +
+                "                        var ttl = msg.ttl || 120;\n" +
+                "                        capturedHeaders[\"accepts-controls\"] = msg.edge_hash;\n" +
+                "                        AndroidBridge.onConfigUpdate(\n" +
+                "                          msg.edge_hash,\n" +
+                "                          ttl,\n" +
+                "                          JSON.stringify(capturedHeaders)\n" +
+                "                        );\n" +
+                "                      }\n" +
+                "                    }\n" +
+                "                  } catch (e) {}\n" +
+                "                });\n" +
+                "\n" +
+                "                ws.addEventListener(\"close\", function (e) {\n" +
+                "                  AndroidBridge.onLog(\n" +
+                "                    \"WSS closed code=\" + (e.code || \"?\") + \" reason=\" + (e.reason || \"\")\n" +
+                "                  );\n" +
+                "                  if (_allohaWs === ws) {\n" +
+                "                    _allohaWs = null;\n" +
+                "                    if (_heartbeatTimer) clearInterval(_heartbeatTimer);\n" +
+                "                  }\n" +
+                "                });\n" +
+                "\n" +
+                "                startHeartbeat(ws);\n" +
+                "              }\n" +
+                "              return _origSend.call(this, data);\n" +
+                "            };\n" +
+                "\n" +
+                "            // Backup override for new sockets created later\n" +
+                "            var OrigWS = iframeWin.WebSocket;\n" +
+                "            iframeWin.WebSocket = function (url, protocols) {\n" +
+                "              var ws = protocols ? new OrigWS(url, protocols) : new OrigWS(url);\n" +
+                "              ws.addEventListener(\"open\", function () {\n" +
+                "                AndroidBridge.onLog(\"WSS opened\");\n" +
+                "              });\n" +
+                "              return ws;\n" +
+                "            };\n" +
+                "            iframeWin.WebSocket.prototype = OrigWS.prototype;\n" +
+                "            iframeWin.WebSocket.CONNECTING = OrigWS.CONNECTING;\n" +
+                "            iframeWin.WebSocket.OPEN = OrigWS.OPEN;\n" +
+                "            iframeWin.WebSocket.CLOSING = OrigWS.CLOSING;\n" +
+                "            iframeWin.WebSocket.CLOSED = OrigWS.CLOSED;\n" +
+                "\n" +
+                "            // ---------------- Keep iframe alive ----------------\n" +
+                "            setInterval(function () {\n" +
+                "              if (!isDone) {\n" +
+                "                var playBtn = iframeWin.document.querySelector(\".allplay__play-btn\");\n" +
+                "                if (playBtn) playBtn.click();\n" +
+                "\n" +
+                "                var video = iframeWin.document.querySelector(\"video\");\n" +
+                "                if (video) {\n" +
+                "                  video.muted = true;\n" +
+                "                  if (video.paused) {\n" +
+                "                    video.play().catch(function () {});\n" +
+                "                  }\n" +
+                "                }\n" +
+                "              }\n" +
+                "            }, 1500);\n" +
+                "          } catch (e) {\n" +
+                "            try {\n" +
+                "              AndroidBridge.onLog(\"JS Error: \" + e);\n" +
+                "            } catch (_) {}\n" +
+                "          }\n" +
+                "        };\n" +
+                "      })();\n" +
+                "    </script>\n" +
+                "  </body>\n" +
+                "</html>";
     }
 }

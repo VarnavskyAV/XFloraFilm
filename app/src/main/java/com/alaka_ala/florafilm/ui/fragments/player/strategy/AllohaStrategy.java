@@ -3,10 +3,12 @@ package com.alaka_ala.florafilm.ui.fragments.player.strategy;
 import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
+import android.webkit.CookieManager;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.analytics.AnalyticsListener;
@@ -15,7 +17,9 @@ import com.alaka_ala.florafilm.data.media.PlayerLaunchData;
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.File;
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.Folder;
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.Item;
+import com.alaka_ala.florafilm.utils.balancers.alloha.AllohaBnsiParserJava;
 import com.alaka_ala.florafilm.utils.balancers.alloha.AllohaParserJava;
+import com.alaka_ala.florafilm.utils.balancers.alloha.AllohaStreaming;
 import com.alaka_ala.florafilm.utils.balancers.alloha.HlsProxyServerJava;
 import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 
@@ -30,6 +34,17 @@ public class AllohaStrategy extends BaseStrategy {
 
     private static final String TAG = "AllohaStrategy";
     private static final String PROXY_URL = "http://127.0.0.1:8080/master.m3u8";
+
+    private final java.util.concurrent.ConcurrentHashMap<String, String> activeHeaders =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private final java.util.concurrent.atomic.AtomicReference<
+            Map<String, com.alaka_ala.florafilm.utils.balancers.alloha.AllohaBnsiParserJava.QualityUrls>> qualityUrlsRef =
+            new java.util.concurrent.atomic.AtomicReference<>(new java.util.LinkedHashMap<>());
+
+    private AllohaParserJava parser;
+    private AllohaStreaming streaming;
+
 
     private boolean isSerial;
     private Context context;
@@ -47,6 +62,26 @@ public class AllohaStrategy extends BaseStrategy {
                               Handler mainHandler) {
         this.isSerial = filmDetails.isSerial();
         this.context = context;
+        this.streaming = new AllohaStreaming(context, mainHandler, new AllohaStreaming.Callback() {
+            @Override
+            public void onQualities(Map<String, AllohaBnsiParserJava.QualityUrls> qualities) {
+                // keep for fallback; current implementation uses atomic ref
+                qualityUrlsRef.set(qualities);
+            }
+
+            @Override
+            public void onProxyReady(HlsProxyServerJava proxy) {
+                proxyServer = proxy;
+                isPlaying = true;
+                Log.d(TAG, "✅ Proxy ready, player continues via fixed URL");
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Streaming error: " + error);
+                mainHandler.post(() -> showToast("Alloha: " + error));
+            }
+        });
         super.setupPlayback(context, player, launchData, filmDetails, savedPositionsMap, executorService, mainHandler);
     }
 
@@ -59,13 +94,21 @@ public class AllohaStrategy extends BaseStrategy {
             return;
         }
 
-        player.setMediaItems(mediaItems);
+        player.setMediaItems(mediaItems, launchData.getSelectedIndexPath().get(INDEX_EPISODES), 0);
         int startEpisodeIndex = launchData.getSelectedIndexPath().get(INDEX_EPISODES);
         restorePositionForCurrentEpisode(startEpisodeIndex);
         updateFilmViewStatus(true);
 
         // Слушатель для смены серий
         player.addAnalyticsListener(new AnalyticsListener() {
+            @Override
+            public void onPlayerError(EventTime eventTime, PlaybackException error) {
+                AnalyticsListener.super.onPlayerError(eventTime, error);
+                // First try bnsi fallback URL (second link after "or")
+                if (streaming != null) streaming.tryFallbackOnce();
+                else tryFallbackFromBnsi();
+            }
+
             @Override
             public void onMediaItemTransition(EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
                 if (player != null) {
@@ -113,21 +156,20 @@ public class AllohaStrategy extends BaseStrategy {
         List<MediaItem> mediaItems = new ArrayList<>();
         List<Integer> selectedIndexPath = launchData.getSelectedIndexPath();
 
-        // Получаем балансер
-        Folder selectedBalancer;
-        if (launchData.getRootFolders().size() == 1) {
-            selectedBalancer = launchData.getRootFolders().get(0);
-        } else {
-            selectedBalancer = launchData.getRootFolders().get(selectedIndexPath.get(INDEX_BALANCER));
+        // Получаем выбранный балансер
+        Folder selectedBalancer = launchData.getRootFolders().size() == 1 ? launchData.getRootFolders().get(0) : launchData.getRootFolders().get(selectedIndexPath.get(INDEX_BALANCER));
+        if (selectedBalancer == null) {
+            return mediaItems;
         }
 
+        // Получаем выбранную серию
         Item selectedSeason = selectedBalancer.children.get(selectedIndexPath.get(INDEX_SEASON));
         if (!(selectedSeason instanceof Folder)) {
             return mediaItems;
         }
 
         // Получаем выбранную озвучку
-        Folder firstEpisode = (Folder) ((Folder) selectedSeason).children.get(selectedIndexPath.get(INDEX_VOICE));
+        Folder firstEpisode = (Folder) ((Folder) selectedSeason).children.get(selectedIndexPath.get(INDEX_EPISODES));
         Folder selectedVoiceTemplate = (Folder) firstEpisode.children.get(selectedIndexPath.get(INDEX_VOICE));
         String selectedVoiceTitle = selectedVoiceTemplate.name;
 
@@ -201,61 +243,59 @@ public class AllohaStrategy extends BaseStrategy {
 
         currentIframeUrl = iframeUrl;
         isPlaying = false;
-
-        // Останавливаем старый прокси
         stopProxy();
 
-        AllohaParserJava parser = new AllohaParserJava(context);
-        executorService.execute(() -> {
-            parser.parse(iframeUrl, new AllohaParserJava.Callback() {
-                @Override
-                public void onHlsLinksReceived(String json, Map<String, String> extraHeaders) {
-                    Log.d(TAG, "HLS Links received");
-                }
+        // Remember current chosen quality key for fallback (use existing selection index)
+        try {
+            int qIndex = launchData.getSelectedIndexPath().get(INDEX_QUALITY);
+            // In your adapter, quality label is stored in File.title. We'll map it later when needed.
+            // Here we just try common set: 2160/1440/1080/720/480/360 if present.
+            String[] ordered = new String[]{"2160", "1440", "1080", "720", "480", "360"};
+            if (qIndex >= 0 && qIndex < ordered.length && streaming != null) streaming.setSelectedQualityKey(ordered[qIndex]);
+        } catch (Exception ignored) {}
 
-                @Override
-                public void onConfigUpdate(String edgeHash, int ttlSeconds, Map<String, String> extraHeaders) {
-                    Log.d(TAG, "Config update");
-                }
+        if (streaming != null) {
+            // streaming.start() internally switches to main thread for WebView,
+            // but calling from main keeps ordering simpler.
+            mainHandler.post(() -> streaming.start(iframeUrl));
+        } else {
+            // fallback to old implementation if streaming not initialized
+            parser = new AllohaParserJava(context);
+            executorService.execute(() -> parser.parse(iframeUrl, new AllohaParserJava.Callback() {
+                @Override public void onHlsLinksReceived(String json, Map<String, String> extraHeaders) {}
+                @Override public void onConfigUpdate(String edgeHash, int ttlSeconds, Map<String, String> extraHeaders) {}
+                @Override public void onM3u8Refreshed(String url, Map<String, String> extraHeaders) {}
+                @Override public void onError(String error) {}
+            }));
+        }
+    }
 
-                @Override
-                public void onM3u8Refreshed(String url, Map<String, String> extraHeaders) {
-                    Log.d(TAG, "M3u8 refreshed, starting proxy");
+    private void tryFallbackFromBnsi() {
+        Map<String, com.alaka_ala.florafilm.utils.balancers.alloha.AllohaBnsiParserJava.QualityUrls> map = qualityUrlsRef.get();
+        if (map == null || map.isEmpty() || proxyServer == null) return;
 
-                    try {
-                        // Создаем новый прокси
-                        proxyServer = new HlsProxyServerJava(extraHeaders, () -> {
-                            Log.d(TAG, "Session expired");
-                            mainHandler.post(() -> loadCurrentEpisode());
-                        });
+        // Можно выбрать нужное качество по имени, здесь берем первое
+        com.alaka_ala.florafilm.utils.balancers.alloha.AllohaBnsiParserJava.QualityUrls q =
+                map.values().iterator().next();
 
-                        proxyServer.setMasterUrl(url);
-                        proxyServer.start();
-                        isPlaying = true;
+        String fallbackUrl =
+                com.alaka_ala.florafilm.utils.balancers.alloha.AllohaBnsiParserJava.pickWithFallback(q, true);
 
-                        Log.d(TAG, "✅ Proxy started, player will continue playing");
-
-                    } catch (IOException e) {
-                        Log.e(TAG, "Failed to start proxy", e);
-                        mainHandler.post(() -> showToast("Ошибка запуска прокси"));
-                    }
-                }
-
-                @Override
-                public void onError(String error) {
-                    Log.e(TAG, "Parser error: " + error);
-                    mainHandler.post(() -> showToast("Ошибка: " + error));
-                }
-            });
-        });
+        if (fallbackUrl != null && !fallbackUrl.isEmpty()) {
+            proxyServer.updateMasterUrl(fallbackUrl);
+            Log.d(TAG, "Switched to fallback URL from bnsi");
+        }
     }
 
     private void stopProxy() {
         if (proxyServer != null && proxyServer.isRunning()) {
             proxyServer.stop();
             Log.d(TAG, "Proxy stopped");
-            proxyServer = null;
         }
+        proxyServer = null;
+
+        if (streaming != null) streaming.stop();
+        if (parser != null) { parser.release(); parser = null; }
     }
 
     private void saveCurrentPositionForEpisode() {
@@ -272,12 +312,13 @@ public class AllohaStrategy extends BaseStrategy {
         if (player == null || player.getMediaItemCount() <= episodeIndex) return;
 
         MediaItem mediaItem = player.getMediaItemAt(episodeIndex);
+
         if (mediaItem == null) return;
 
         String key = mediaItem.mediaId;
         Long savedPosition = savedPositionsMap.get(key);
 
-        if (savedPosition != null && savedPosition > 0) {
+        if (savedPosition != null && savedPosition > 0L) {
             player.seekTo(episodeIndex, savedPosition);
         }
     }
@@ -328,6 +369,9 @@ public class AllohaStrategy extends BaseStrategy {
         super.cleanup(player);
     }
 
-    private void updateFilmViewStatus(boolean isStartView) {}
-    private void savePositionToDatabase(String key, long position) {}
+    private void updateFilmViewStatus(boolean isStartView) {
+    }
+
+    private void savePositionToDatabase(String key, long position) {
+    }
 }
