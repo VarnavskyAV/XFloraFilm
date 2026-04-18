@@ -8,6 +8,8 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.TypeConverters;
 
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
+
 import java.util.List;
 import java.util.Map;
 
@@ -23,14 +25,14 @@ public interface FilmDetailsDao {
      * Используйте insertAndPreservePositions для безопасного обновления.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails filmDetails);
+    void insert(FilmDetails filmDetails);
 
     /**
      * Вставляет новый FilmDetails, но сохраняет карту позиций просмотра от старой записи.
      * @param filmDetails Новый объект с данными о фильме.
      */
     @Transaction
-    default void insertAndPreservePositions(com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails filmDetails) {
+    default void insertAndPreservePositions(FilmDetails filmDetails) {
         com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails oldDetails = getById(filmDetails.getKinopoiskId());
         if (oldDetails != null) {
             filmDetails.setLastPositionPlayerView(oldDetails.getLastPositionPlayerView());
@@ -49,11 +51,11 @@ public interface FilmDetailsDao {
 
     /**Возвращает фильм по его ID*/
     @Query("SELECT * FROM film_details WHERE kinopoiskId = :kinopoiskId")
-    com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails getById(int kinopoiskId);
+    FilmDetails getById(int kinopoiskId);
 
     /**Возвращает только список фильмов которые были добавлены в историю просмотра */
     @Query("SELECT * FROM film_details WHERE isView = 1 ORDER BY timestampAddedHistory DESC")
-    LiveData<List<com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails>> getByView();
+    LiveData<List<FilmDetails>> getByView();
 
     /**Обновляет время просмотра фильма (Этот метод автоматически обновляет время просмотра при загрузке данных)*/
     @Query("UPDATE film_details SET timestampAddedHistory = :ts WHERE kinopoiskId = :kinopoiskId")
@@ -61,13 +63,13 @@ public interface FilmDetailsDao {
 
     /**Возвращает только список фильмов которые ранее был начат просмотр */
     @Query("SELECT * FROM film_details WHERE isStartView = 1")
-    LiveData<List<com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails>> getByIsStartView();
+    LiveData<List<FilmDetails>> getByIsStartView();
     /**Возвращает только список фильмов которые были добавлены в закладки */
     @Query("SELECT * FROM film_details WHERE isBookmark = 1")
-    LiveData<List<com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails>> getByBookmark();
+    LiveData<List<FilmDetails>> getByBookmark();
     /**Возвращает только список фильмов которые были добавлены в список отслеживаемых озвучек */
     @Query("SELECT * FROM film_details WHERE observeUpdateVoice = 1")
-    LiveData<List<com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails>> getFilmByObserveVoice();
+    LiveData<List<FilmDetails>> getFilmByObserveVoice();
 
     @Query("DELETE FROM film_details WHERE kinopoiskId = :kinopoiskId")
     void removeByKinopoiskId(int kinopoiskId);

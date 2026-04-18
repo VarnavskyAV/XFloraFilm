@@ -7,6 +7,7 @@
         <item name="StrokeUpdateColor">@color/updateAvailableDark</item>
         <item name="ButtonsTheme">@color/ButtonThemeDark</item>
         <item name="PlayerIconColor">@color/optionIconTintLight</item>
+        <item name="ItemFilmTextColor">@color/item_film_horizontal_text_color_theme_dark</item>
 
     </style>
 </resources>

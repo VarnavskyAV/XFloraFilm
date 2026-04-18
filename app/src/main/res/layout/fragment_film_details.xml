@@ -25,8 +25,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:contentDescription="@string/film_poster_description"
-                android:scaleType="centerCrop"
-                app:layout_collapseMode="parallax" />
+                android:scaleType="fitCenter"
+                app:layout_collapseMode="parallax"
+                tools:srcCompat="@tools:sample/backgrounds/scenic" />
 
             <View
                 android:id="@+id/view"
@@ -43,7 +44,7 @@
         android:id="@+id/nstdScrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="-50dp"
+        android:layout_marginTop="0dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <com.google.android.material.card.MaterialCardView
@@ -62,12 +63,34 @@
                     android:id="@+id/film_details_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:singleLine="true"
                     android:textSize="24sp"
                     android:textStyle="bold"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:text="Название фильма" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="24dp"
+                    android:orientation="vertical">
+
+                    <Button
+                        android:id="@+id/buttonResumeWatch"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Смотреть" />
+
+                    <TextView
+                        android:id="@+id/textViewResumeWatch"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="сезон 1 / серия 5 / время 21 мин" />
+                </LinearLayout>
 
                 <HorizontalScrollView
                     android:id="@+id/chips_scroll_view"
@@ -104,7 +127,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:text="Описание:"
-                    android:textSize="18sp"
+                    android:textSize="24sp"
                     android:textStyle="bold"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -121,11 +144,36 @@
                     app:layout_constraintTop_toBottomOf="@+id/film_details_description_label"
                     tools:text="Подробное описание фильма будет здесь. Это может быть очень длинный текст, поэтому он должен быть прокручиваемым." />
 
+                <View
+                    android:id="@+id/divider3"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="36dp"
+                    android:background="?android:attr/listDivider" />
+
+                <TextView
+                    android:id="@+id/textView5"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Файлы"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvItemFilm"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_marginTop="36dp" />
+                    android:layout_marginStart="8dp"
+                    android:layout_marginBottom="8dp"
+                    tools:itemCount="1"
+                    tools:listitem="@layout/item_folder" />
+
+                <View
+                    android:id="@+id/divider2"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="?android:attr/listDivider" />
 
                 <TextView
                     android:id="@+id/textView6"
@@ -133,7 +181,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="36dp"
                     android:text="Дополнительно"
-                    android:textSize="16dp"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
                 <com.google.android.material.chip.ChipGroup

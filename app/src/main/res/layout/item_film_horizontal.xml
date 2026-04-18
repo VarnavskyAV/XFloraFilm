@@ -2,7 +2,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="170dp"
-    android:layout_height="235dp"
+    android:layout_height="250dp"
     android:layout_marginEnd="8dp">
 
     <com.google.android.material.card.MaterialCardView
@@ -11,7 +11,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="16dp"
         app:cardCornerRadius="8dp"
         app:cardElevation="4dp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -28,9 +28,10 @@
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="135dp"
+            android:layout_height="100dp"
             android:layout_gravity="bottom"
-            android:background="@drawable/gradient_overlay" />
+            android:background="@drawable/gradient_overlay"
+            android:foreground="@drawable/gradient_overlay" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -41,7 +42,7 @@
                 android:id="@+id/film_rating"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#B6B6B6"
+                android:textColor="?attr/ItemFilmTextColor"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toTopOf="@+id/film_title"
@@ -54,7 +55,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:textColor="#FFFFFF"
+                android:textColor="?attr/ItemFilmTextColor"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toTopOf="@+id/film_year_genre"
@@ -66,7 +67,7 @@
                 android:id="@+id/film_year_genre"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textColor="#A6A6A6"
+                android:textColor="?attr/ItemFilmTextColor"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"

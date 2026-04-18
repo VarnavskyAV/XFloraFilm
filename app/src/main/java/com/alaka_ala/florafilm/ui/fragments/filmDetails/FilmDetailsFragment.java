@@ -9,6 +9,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -34,6 +36,7 @@ import com.alaka_ala.unofficial_kinopoisk_api.models.Genre;
 import com.bumptech.glide.Glide;
 import com.google.android.material.chip.Chip;
 
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -91,12 +94,19 @@ public class FilmDetailsFragment extends Fragment {
                     return;
                 }
 
-                int sourceType = file.getIndexPath().get(0);
+                int sourceType = file.getIndexPath().get(0); // balancer
                 PlayerLaunchData launchData = new PlayerLaunchData(
                         sourceType,
                         adapter.getRootFolders(),
                         file.getIndexPath()
                 );
+
+                // Сохраняем выбранную позицию просмотра.
+                executorService.execute(() -> {
+                    filmDetails.setSelectedIndexPath(launchData.getSelectedIndexPath());
+                    filmDetailsDao.insertAndPreservePositions(filmDetails);
+                });
+
 
                 Bundle bundle = new Bundle();
                 bundle.putSerializable("playerLaunchData", launchData);
@@ -237,6 +247,19 @@ public class FilmDetailsFragment extends Fragment {
                 addChip(country.getName(), "country", country.getName());
             }
         }
+        resumePopulateButton(film);
+    }
+
+    private void resumePopulateButton(FilmDetails filmDetails) {
+        Button buttonResumeWatch = binding.buttonResumeWatch;
+        TextView textViewResumeWatch = binding.textViewResumeWatch;
+
+        // По ключу надо получить позицию просмотра.
+        // По INDEX_VOICE, INDEX_EPISODE, INDEX_SEASON можно получить какая была выбрана озвучка, сезон, серия и т.д.
+        Map<String, Long> mapPositionView = filmDetails.getLastPositionPlayerView();
+
+
+
     }
 
     private void addChip(String text, String type, String data) {

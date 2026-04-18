@@ -10,6 +10,9 @@
     <color name="gradient_poster_color_dark">#141218</color>
     <color name="gradient_poster_color_light">#FFFBFE</color>
 
+    <color name="item_film_horizontal_text_color_theme_dark">#FFFFFF</color>
+    <color name="item_film_horizontal_text_color_theme_light">#000000</color>
+
     <color name="optionIconTintDark">#141218</color>
     <color name="optionIconTintLight">#C8C2CE</color>
 
@@ -18,6 +21,8 @@
 
     <color name="ButtonThemeLight">#70ADB8</color>
     <color name="ButtonThemeDark">#93B8BF</color>
+
+
 
 
 </resources>

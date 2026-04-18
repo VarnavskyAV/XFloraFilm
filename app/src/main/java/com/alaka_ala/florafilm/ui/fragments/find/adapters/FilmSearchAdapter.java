@@ -109,8 +109,6 @@ public class FilmSearchAdapter extends RecyclerView.Adapter<FilmSearchAdapter.Fi
             // Убедитесь, что у вас добавлена зависимость Glide и есть доступ в интернет
             Glide.with(itemView.getContext())
                     .load(film.getPosterUrlPreview())
-                    .placeholder(R.drawable.ic_launcher_background) // Заглушка на время загрузки
-                    .error(R.drawable.ic_launcher_background) // Заглушка в случае ошибки
                     .into(binding.imageViewPoster);
         }
     }

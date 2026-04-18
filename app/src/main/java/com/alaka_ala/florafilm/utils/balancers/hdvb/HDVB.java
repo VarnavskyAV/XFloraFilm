@@ -45,6 +45,8 @@ import okhttp3.Response;
 
 public class HDVB implements Balancer {
 
+    private final String titleBalancer = "HDVB";
+
     public static final String TYPE_CONTENT_FILM = "movie";
     public static final String TYPE_CONTENT_SERIAL = "serial";
     private static final Map<String, String> headers = new HashMap<>();
@@ -176,7 +178,7 @@ public class HDVB implements Balancer {
             translationIndex++;
         }
 
-        SelectorVoiceAdapter.Folder hdvbFolder = new SelectorVoiceAdapter.Folder("HDVB", hdvbPath, translationFolders);
+        SelectorVoiceAdapter.Folder hdvbFolder = new SelectorVoiceAdapter.Folder(titleBalancer, hdvbPath, translationFolders);
         return new SelectorVoiceAdapter.AdapterData(Arrays.asList(hdvbFolder), posterUrl, title);
     }
 
@@ -258,7 +260,7 @@ public class HDVB implements Balancer {
             }
         }
 
-        SelectorVoiceAdapter.Folder hdvbFolder = new SelectorVoiceAdapter.Folder("HDVB", hdvbPath, seasonFolders);
+        SelectorVoiceAdapter.Folder hdvbFolder = new SelectorVoiceAdapter.Folder(titleBalancer, hdvbPath, seasonFolders);
         return new SelectorVoiceAdapter.AdapterData(Arrays.asList(hdvbFolder), posterUrl, title);
     }
 

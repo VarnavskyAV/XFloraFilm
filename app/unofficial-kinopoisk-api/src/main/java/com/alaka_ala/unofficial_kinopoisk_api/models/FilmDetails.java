@@ -181,6 +181,8 @@ public class FilmDetails extends BaseModel {
     @TypeConverters(Converters.class)
     private Map<String, Long> lastPositionPlayerView;
 
+    @TypeConverters(Converters.class)
+    private List<Integer> selectedIndexPath;
 
 
     public FilmDetails() {
@@ -250,7 +252,9 @@ public class FilmDetails extends BaseModel {
     public Map<String, Long> getLastPositionPlayerView() {
         return lastPositionPlayerView;
     }
-
+    public List<Integer> getSelectedIndexPath() {
+        return selectedIndexPath;
+    }
 
 
     // Setters for Room
@@ -324,7 +328,9 @@ public class FilmDetails extends BaseModel {
     public void setImdbId(String imdbId) {
         this.imdbId = imdbId;
     }
-
+    public void setSelectedIndexPath(List<Integer> selectedIndexPath) {
+        this.selectedIndexPath = selectedIndexPath;
+    }
 
     @Override
     public boolean equals(Object o) {

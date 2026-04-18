@@ -8,8 +8,8 @@
     android:focusable="auto"
     android:foreground="?attr/selectableItemBackground"
     android:orientation="vertical"
-    android:paddingStart="32dp"
-    android:paddingTop="8dp"
+    android:paddingStart="16dp"
+    android:paddingTop="16dp"
     android:paddingEnd="16dp"
     android:paddingBottom="8dp">
 
@@ -20,7 +20,7 @@
 
         <ImageView
             android:id="@+id/imageView6"
-            android:layout_width="24dp"
+            android:layout_width="46dp"
             android:layout_height="24dp"
             android:layout_gravity="center"
             android:layout_weight="1"
@@ -29,11 +29,23 @@
         <TextView
             android:id="@+id/file_name"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:textSize="20sp"
+            android:gravity="center_vertical"
+            android:textSize="16sp"
+            android:textStyle="bold"
             tools:text="AUTO" />
+
     </LinearLayout>
+
+    <View
+        android:id="@+id/divider4"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1"
+        android:background="?android:attr/listDivider" />
 
 </LinearLayout>

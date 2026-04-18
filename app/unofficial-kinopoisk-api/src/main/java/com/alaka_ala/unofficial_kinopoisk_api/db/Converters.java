@@ -2,7 +2,11 @@ package com.alaka_ala.unofficial_kinopoisk_api.db;
 
 import androidx.room.TypeConverter;
 
+import com.alaka_ala.unofficial_kinopoisk_api.models.Country;
+import com.alaka_ala.unofficial_kinopoisk_api.models.CountryResponse;
 import com.alaka_ala.unofficial_kinopoisk_api.models.FilmItem;
+import com.alaka_ala.unofficial_kinopoisk_api.models.Genre;
+import com.alaka_ala.unofficial_kinopoisk_api.models.GenreResponse;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
@@ -37,7 +41,7 @@ public class Converters {
 
     // --- List<Genre> Converter ---
     @TypeConverter
-    public static String fromGenreList(List<com.alaka_ala.unofficial_kinopoisk_api.models.Genre> genres) {
+    public static String fromGenreList(List<Genre> genres) {
         if (genres == null) {
             return null;
         }
@@ -45,17 +49,17 @@ public class Converters {
     }
 
     @TypeConverter
-    public static List<com.alaka_ala.unofficial_kinopoisk_api.models.Genre> toGenreList(String json) {
+    public static List<Genre> toGenreList(String json) {
         if (json == null) {
             return Collections.emptyList();
         }
-        Type listType = new TypeToken<List<com.alaka_ala.unofficial_kinopoisk_api.models.Genre>>() {}.getType();
+        Type listType = new TypeToken<List<Genre>>() {}.getType();
         return gson.fromJson(json, listType);
     }
 
     // --- List<Country> Converter ---
     @TypeConverter
-    public static String fromCountryList(List<com.alaka_ala.unofficial_kinopoisk_api.models.Country> countries) {
+    public static String fromCountryList(List<Country> countries) {
         if (countries == null) {
             return null;
         }
@@ -63,11 +67,11 @@ public class Converters {
     }
 
     @TypeConverter
-    public static List<com.alaka_ala.unofficial_kinopoisk_api.models.Country> toCountryList(String json) {
+    public static List<Country> toCountryList(String json) {
         if (json == null) {
             return Collections.emptyList();
         }
-        Type listType = new TypeToken<List<com.alaka_ala.unofficial_kinopoisk_api.models.Country>>() {}.getType();
+        Type listType = new TypeToken<List<Country>>() {}.getType();
         return gson.fromJson(json, listType);
     }
 
@@ -93,7 +97,7 @@ public class Converters {
 
     // -- Для List<GenreResponse> --
     @TypeConverter
-    public static String fromGenreResponseList(List<com.alaka_ala.unofficial_kinopoisk_api.models.GenreResponse> countries) {
+    public static String fromGenreResponseList(List<GenreResponse> countries) {
         if (countries == null) {
             return null;
         }
@@ -101,17 +105,17 @@ public class Converters {
     }
 
     @TypeConverter
-    public static List<com.alaka_ala.unofficial_kinopoisk_api.models.GenreResponse> toGenreResponseList(String json) {
+    public static List<GenreResponse> toGenreResponseList(String json) {
         if (json == null || json.isEmpty()) {
             return Collections.emptyList();
         }
-        Type type = new TypeToken<List<com.alaka_ala.unofficial_kinopoisk_api.models.GenreResponse>>() {}.getType();
+        Type type = new TypeToken<List<GenreResponse>>() {}.getType();
         return gson.fromJson(json, type);
     }
 
     // -- Для List<GenreResponse> --
     @TypeConverter
-    public static String fromCountryResponseList(List<com.alaka_ala.unofficial_kinopoisk_api.models.CountryResponse> countries) {
+    public static String fromCountryResponseList(List<CountryResponse> countries) {
         if (countries == null) {
             return null;
         }
@@ -119,11 +123,32 @@ public class Converters {
     }
 
     @TypeConverter
-    public static List<com.alaka_ala.unofficial_kinopoisk_api.models.CountryResponse> toCountryResponseList(String json) {
+    public static List<CountryResponse> toCountryResponseList(String json) {
         if (json == null || json.isEmpty()) {
             return Collections.emptyList();
         }
-        Type type = new TypeToken<List<com.alaka_ala.unofficial_kinopoisk_api.models.CountryResponse>>() {}.getType();
+        Type type = new TypeToken<List<CountryResponse>>() {}.getType();
         return gson.fromJson(json, type);
     }
+
+    // -- Для List<Integer> selectableIndexPath --
+    @TypeConverter
+    public static String fromIndexPathList(List<Integer> selectedIndexPath) {
+        if (selectedIndexPath == null) {
+            return null;
+        }
+        return gson.toJson(selectedIndexPath);
+    }
+
+    @TypeConverter
+    public static List<Integer> toSelectableIndexPath(String json) {
+        if (json == null || json.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Type type = new TypeToken<List<Integer>>() {}.getType();
+        return gson.fromJson(json, type);
+    }
+
+
+
 }

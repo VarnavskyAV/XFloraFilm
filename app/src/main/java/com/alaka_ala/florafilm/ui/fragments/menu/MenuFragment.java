@@ -45,7 +45,7 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         List<MenuItem> menuItems = new ArrayList<>();
-        menuItems.add(new MenuItem("Информация","Приложение находится в разработке!","Принято"));
+        menuItems.add(new MenuItem("Информация","Приложение находится в разработке! Возможны незначительные баги.",""));
 
         AppUpdateManager.getInstance(getContext()).checkForUpdate(new AppUpdateManager.UpdateCheckCallback() {
             @Override
@@ -70,7 +70,6 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         //menuItems.add(new MenuItem(R.drawable.download, "Загрузки"));
         //menuItems.add(new MenuItem(R.drawable.notification, "Ожидаемые"));
         menuItems.add(new MenuItem(R.drawable.settings, "Настройки"));
-        //menuItems.add(new MenuItem(R.drawable.info, "О приложении"));
 
         // Добавляем информационное сообщение
         //menuItems.add(new MenuItem("Версия приложения: " + BuildConfig.VERSION_NAME));
@@ -94,8 +93,6 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
 
     @Override
     public void onInfoButtonClick(MenuItem menuItem, int buttonIndex) {
-        String message = "Нажата кнопка " + buttonIndex + " в элементе '" + menuItem.getTitle() + "'";
-        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
 
         // Пример логики
         // if (menuItem.getTitle().equals("Обновление")) {
