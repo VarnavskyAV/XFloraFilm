@@ -1,5 +1,7 @@
 package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -7,7 +9,7 @@ import com.google.gson.stream.JsonToken;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+@Keep
 public class EpisodeFilesTypeAdapter extends TypeAdapter<List<Object>> {
 
     @Override

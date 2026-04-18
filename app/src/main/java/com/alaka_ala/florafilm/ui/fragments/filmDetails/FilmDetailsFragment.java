@@ -1,5 +1,6 @@
 package com.alaka_ala.florafilm.ui.fragments.filmDetails;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -171,7 +172,10 @@ public class FilmDetailsFragment extends Fragment {
                 @Override
                 public void onError(String error) {
                     if (getContext() != null) {
-                        Toast.makeText(getContext(), "HDVB: " + error, Toast.LENGTH_SHORT).show();
+                        AlertDialog alert = new AlertDialog.Builder(getContext()).create();
+                        alert.setTitle("HDVB");
+                        alert.setMessage(error);
+                        alert.show();
                     }
                 }
             });
@@ -194,14 +198,20 @@ public class FilmDetailsFragment extends Fragment {
                         @Override
                         public void onError(String error) {
                             new Handler(Looper.getMainLooper()).post(() -> {
-                                Toast.makeText(getContext(), "Alloha: " + error, Toast.LENGTH_SHORT).show();
+                                AlertDialog alert = new AlertDialog.Builder(getContext()).create();
+                                alert.setTitle("ALLOHA");
+                                alert.setMessage(error);
+                                alert.show();
                             });
                         }
                     });
                 } catch (Exception e) {
                     e.printStackTrace();
                     new Handler(Looper.getMainLooper()).post(() -> {
-                        Toast.makeText(getContext(), "Alloha: Фильм отсутствует", Toast.LENGTH_SHORT).show();
+                        AlertDialog alert = new AlertDialog.Builder(getContext()).create();
+                        alert.setTitle("ALLOHA");
+                        alert.setMessage(e.getMessage());
+                        alert.show();
                     });
                 }
             });

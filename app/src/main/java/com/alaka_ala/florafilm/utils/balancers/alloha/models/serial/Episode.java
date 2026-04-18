@@ -1,8 +1,11 @@
 package com.alaka_ala.florafilm.utils.balancers.alloha.models.serial;
 
+import androidx.annotation.Keep;
+
 import java.util.Map;
 
 // Класс эпизода
+@Keep
 public class Episode {
     private String iframe;
     private int episode;

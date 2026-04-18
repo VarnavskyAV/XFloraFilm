@@ -1,9 +1,12 @@
 package com.alaka_ala.florafilm.utils.balancers.alloha.models.serial;
 
 
+import androidx.annotation.Keep;
+
 import java.util.Map;
 
 // Основной класс с данными сериала
+@Keep
 public class SeriesData {
     private String name;
     private String original_name;

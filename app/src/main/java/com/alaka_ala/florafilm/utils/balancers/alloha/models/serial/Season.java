@@ -1,8 +1,11 @@
 package com.alaka_ala.florafilm.utils.balancers.alloha.models.serial;
 
+import androidx.annotation.Keep;
+
 import java.util.Map;
 
 // Класс сезона
+@Keep
 public class Season {
     private String iframe;
     private int season;

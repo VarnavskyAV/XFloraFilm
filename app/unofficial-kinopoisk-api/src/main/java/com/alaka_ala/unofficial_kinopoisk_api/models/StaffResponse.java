@@ -1,5 +1,6 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -7,6 +8,7 @@ import androidx.room.TypeConverters;
 
 import java.util.List;
 
+@Keep
 @Entity(tableName = "staff_response")
 @TypeConverters(Converters.class)
 public class StaffResponse {

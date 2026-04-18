@@ -2,6 +2,8 @@ package com.alaka_ala.unofficial_kinopoisk_api.models;
 
 import android.annotation.SuppressLint;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.ArrayList;
@@ -10,6 +12,7 @@ import java.util.ArrayList;
  * Оптимизированная модель фильма для списков
  * Содержит только необходимые поля для отображения в списках
  */
+@Keep
 public class FilmItem extends BaseModel {
     
     @SerializedName("kinopoiskId")

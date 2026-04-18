@@ -1,9 +1,12 @@
 // EpisodeResponse.java
 package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
+@Keep
 public class EpisodeResponse {
     private String episode;
     private String title;

@@ -1,5 +1,6 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.Ignore;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
  * Коллекция фильмов с метаданными
  * Оптимизированная версия для работы со списками фильмов
  */
+@Keep
 @Entity(tableName = "film_collection")
 public class FilmCollection extends BaseModel {
 

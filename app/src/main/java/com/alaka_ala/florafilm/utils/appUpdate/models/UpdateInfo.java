@@ -1,7 +1,10 @@
 package com.alaka_ala.florafilm.utils.appUpdate.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
+@Keep
 public class UpdateInfo {
     @SerializedName("versionCode")
     private int versionCode;

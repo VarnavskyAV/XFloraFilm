@@ -1,6 +1,9 @@
 package com.alaka_ala.florafilm.utils.balancers.alloha.models.serial;
 
+import androidx.annotation.Keep;
+
 // Главный корневой класс (такой же как для фильмов)
+@Keep
 public class SeriesResponse {
     private String status;
     private SeriesData data;

@@ -1,6 +1,9 @@
 package com.alaka_ala.florafilm.utils.balancers.alloha.models.serial;
 
+import androidx.annotation.Keep;
+
 // Класс TranslationIframe (такой же как для фильмов, но с полем date)
+@Keep
 public class TranslationIframe {
     private String name;
     private String iframe;

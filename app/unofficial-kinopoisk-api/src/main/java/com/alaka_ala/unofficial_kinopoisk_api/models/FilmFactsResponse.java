@@ -1,5 +1,6 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @Entity(tableName = "film_facts_response")
 @TypeConverters(Converters.class)
+@Keep
 public class FilmFactsResponse {
     @PrimaryKey(autoGenerate = false)
     @NonNull
@@ -56,3 +58,4 @@ public class FilmFactsResponse {
         this.lastUpdated = lastUpdated;
     }
 }
+

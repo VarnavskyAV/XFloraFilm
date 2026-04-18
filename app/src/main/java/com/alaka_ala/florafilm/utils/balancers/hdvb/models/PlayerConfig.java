@@ -1,6 +1,9 @@
 package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
+import androidx.annotation.Keep;
+
 /** Модель данных из HTML страницы HDVB*/
+@Keep
 public class PlayerConfig {
     private String key;
     private String file;

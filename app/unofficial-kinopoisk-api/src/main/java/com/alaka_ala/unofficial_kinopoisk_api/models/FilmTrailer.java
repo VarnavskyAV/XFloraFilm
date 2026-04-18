@@ -1,11 +1,14 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
  * Оптимизированная модель трейлера фильма
  * Использует Builder pattern для удобного создания объектов
  */
+@Keep
 public class FilmTrailer extends BaseModel {
     
     @SerializedName("url")

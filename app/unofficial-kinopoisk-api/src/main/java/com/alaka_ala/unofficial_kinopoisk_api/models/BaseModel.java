@@ -1,11 +1,14 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import java.io.Serializable;
 
 /**
  * Базовый класс для всех моделей данных
  * Содержит общие методы и интерфейсы
  */
+@Keep
 public abstract class BaseModel implements Serializable {
     
     /**

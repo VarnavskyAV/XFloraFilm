@@ -1,7 +1,10 @@
 package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
+@Keep
 public class HDVBApiResponse {
     @SerializedName("title_ru")
     private String titleRu;

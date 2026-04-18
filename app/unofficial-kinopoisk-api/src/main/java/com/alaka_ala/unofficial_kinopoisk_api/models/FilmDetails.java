@@ -2,6 +2,7 @@ package com.alaka_ala.unofficial_kinopoisk_api.models;
 
 import android.annotation.SuppressLint;
 
+import androidx.annotation.Keep;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.TypeConverters;
@@ -16,6 +17,7 @@ import java.util.Objects;
 /**
  * Сущность для кэширования детальной информации о фильме.
  */
+@Keep
 @Entity(tableName = "film_details")
 public class FilmDetails extends BaseModel {
 

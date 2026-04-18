@@ -1,8 +1,11 @@
 package com.alaka_ala.unofficial_kinopoisk_api.constants;
 
+import androidx.annotation.Keep;
+
 /**
  * Константы типов фильмов
  */
+@Keep
 public final class FilmTypes {
     private FilmTypes() {}
 

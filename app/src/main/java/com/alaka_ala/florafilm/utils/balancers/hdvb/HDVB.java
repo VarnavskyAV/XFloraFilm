@@ -3,6 +3,7 @@ package com.alaka_ala.florafilm.utils.balancers.hdvb;
 import android.os.Handler;
 import android.os.Looper;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 
 import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter;
@@ -43,6 +44,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+@Keep
 public class HDVB implements Balancer {
 
     private final String titleBalancer = "HDVB";

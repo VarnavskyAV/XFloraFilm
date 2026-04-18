@@ -1,6 +1,9 @@
 package com.alaka_ala.florafilm.utils.balancers.alloha.models.serial;
 
+import androidx.annotation.Keep;
+
 // Класс перевода для эпизода
+@Keep
 public class EpisodeTranslation {
     private String translation;
     private String quality;

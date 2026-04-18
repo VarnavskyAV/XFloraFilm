@@ -19,8 +19,14 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
-
-# Rules for Kinopoisk API models
--keep class com.alaka_ala.florafilm.ui.utils.kinopoisk.models.** { *; }
--keep public class com.alaka_ala.florafilm.ui.utils.kinopoisk.models.**
 -keepattributes *Annotation*, Signature
+# Сохраняем Gson
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+-dontwarn com.google.gson.**
+
+# Сохраняем все, что помечено @Keep
+-keep @androidx.annotation.Keep class * { *; }
+-keepclassmembers class * {
+    @androidx.annotation.Keep *;
+}

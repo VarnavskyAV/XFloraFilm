@@ -1,5 +1,7 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
@@ -7,6 +9,7 @@ import java.util.List;
  * Модель результата поиска фильма.
  * Извлечен из FilmSearchResponse для лучшей структуры.
  */
+@Keep
 public class SearchResultFilm {
     @SerializedName("filmId")
     private int filmId;

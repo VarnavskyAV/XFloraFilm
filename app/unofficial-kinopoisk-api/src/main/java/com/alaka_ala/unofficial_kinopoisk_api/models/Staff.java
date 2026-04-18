@@ -1,10 +1,12 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import com.google.gson.annotations.SerializedName;
 
+@Keep
 @Entity(tableName = "staff")
 public class Staff {
     @PrimaryKey

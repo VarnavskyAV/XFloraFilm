@@ -1,15 +1,18 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
 import androidx.room.TypeConverter;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 /**
  * Type converters to allow Room to reference complex data types.
  */
+@Keep
 public class Converters {
     private static Gson gson = new Gson();
 
@@ -17,8 +20,8 @@ public class Converters {
     @TypeConverter
     public static List<FilmItem> fromStringToFilmItemList(String data) {
         if (data == null) return Collections.emptyList();
-        Type listType = new TypeToken<List<FilmItem>>() {}.getType();
-        return gson.fromJson(data, listType);
+        FilmItem[] items = gson.fromJson(data, FilmItem[].class);
+        return items != null ? Arrays.asList(items) : Collections.emptyList();
     }
 
     @TypeConverter
@@ -30,8 +33,8 @@ public class Converters {
     @TypeConverter
     public static List<GenreResponse> fromStringToGenreResponseList(String data) {
         if (data == null) return Collections.emptyList();
-        Type listType = new TypeToken<List<GenreResponse>>() {}.getType();
-        return gson.fromJson(data, listType);
+        GenreResponse[] items = gson.fromJson(data, GenreResponse[].class);
+        return items != null ? Arrays.asList(items) : Collections.emptyList();
     }
 
     @TypeConverter
@@ -43,8 +46,8 @@ public class Converters {
     @TypeConverter
     public static List<CountryResponse> fromStringToCountryResponseList(String data) {
         if (data == null) return Collections.emptyList();
-        Type listType = new TypeToken<List<CountryResponse>>() {}.getType();
-        return gson.fromJson(data, listType);
+        CountryResponse[] items = gson.fromJson(data, CountryResponse[].class);
+        return items != null ? Arrays.asList(items) : Collections.emptyList();
     }
 
     @TypeConverter
@@ -56,8 +59,8 @@ public class Converters {
     @TypeConverter
     public static List<Genre> fromStringToGenreList(String data) {
         if (data == null) return Collections.emptyList();
-        Type listType = new TypeToken<List<Genre>>() {}.getType();
-        return gson.fromJson(data, listType);
+        Genre[] items = gson.fromJson(data, Genre[].class);
+        return items != null ? Arrays.asList(items) : Collections.emptyList();
     }
 
     @TypeConverter
@@ -69,8 +72,9 @@ public class Converters {
     @TypeConverter
     public static List<Country> fromStringToCountryList(String data) {
         if (data == null) return Collections.emptyList();
-        Type listType = new TypeToken<List<Country>>() {}.getType();
-        return gson.fromJson(data, listType);
+        // Используем массив вместо TypeToken
+        Country[] countries = gson.fromJson(data, Country[].class);
+        return countries != null ? Arrays.asList(countries) : Collections.emptyList();
     }
 
     @TypeConverter
@@ -81,11 +85,9 @@ public class Converters {
     // --- FilmSimilarItem Converters ---
     @TypeConverter
     public static List<FilmSimilarItem> fromStringToFilmSimilarItemList(String data) {
-        if (data == null) {
-            return null;
-        }
-        Type listType = new TypeToken<List<FilmSimilarItem>>() {}.getType();
-        return gson.fromJson(data, listType);
+        if (data == null) return null;
+        FilmSimilarItem[] items = gson.fromJson(data, FilmSimilarItem[].class);
+        return items != null ? Arrays.asList(items) : null;
     }
 
     @TypeConverter
@@ -99,8 +101,8 @@ public class Converters {
         if (data == null) {
             return null;
         }
-        Type listType = new TypeToken<List<FilmImageItem>>() {}.getType();
-        return gson.fromJson(data, listType);
+        FilmImageItem[] items = gson.fromJson(data, FilmImageItem[].class);
+        return items != null ? Arrays.asList(items) : null;
     }
 
     @TypeConverter
@@ -114,8 +116,8 @@ public class Converters {
         if (data == null) {
             return null;
         }
-        Type listType = new TypeToken<List<FilmSequelOrPrequel>>() {}.getType();
-        return gson.fromJson(data, listType);
+        FilmSequelOrPrequel[] items = gson.fromJson(data, FilmSequelOrPrequel[].class);
+        return items != null ? Arrays.asList(items) : null;
     }
 
     @TypeConverter
@@ -129,8 +131,8 @@ public class Converters {
         if (data == null) {
             return null;
         }
-        Type listType = new TypeToken<List<SearchResultFilm>>() {}.getType();
-        return gson.fromJson(data, listType);
+        SearchResultFilm[] items = gson.fromJson(data, SearchResultFilm[].class);
+        return items != null ? Arrays.asList(items) : null;
     }
 
     @TypeConverter
@@ -141,52 +143,60 @@ public class Converters {
     // --- Staff Converters ---
     @TypeConverter
     public static List<Staff> fromStringToStaffList(String value) {
-        Type listType = new TypeToken<List<Staff>>() {}.getType();
-        return new Gson().fromJson(value, listType);
+        if (value == null) {
+            return null;
+        }
+        Staff[] items = new Gson().fromJson(value, Staff[].class);
+        return items != null ? Arrays.asList(items) : null;
     }
 
     @TypeConverter
     public static String fromStaffList(List<Staff> list) {
-        Gson gson = new Gson();
         return gson.toJson(list);
     }
 
     // --- Person Converters ---
     @TypeConverter
     public static List<Person> fromStringToPersonList(String value) {
-        Type listType = new TypeToken<List<Person>>() {}.getType();
-        return new Gson().fromJson(value, listType);
+        if (value == null) {
+            return null;
+        }
+        Person[] items = new Gson().fromJson(value, Person[].class);
+        return items != null ? Arrays.asList(items) : null;
     }
 
     @TypeConverter
     public static String fromPersonList(List<Person> list) {
-        Gson gson = new Gson();
         return gson.toJson(list);
     }
 
     // --- AwardItem Converters ---
     @TypeConverter
     public static List<AwardItem> fromStringToAwardItemList(String value) {
-        Type listType = new TypeToken<List<AwardItem>>() {}.getType();
-        return new Gson().fromJson(value, listType);
+        if (value == null) {
+            return null;
+        }
+        AwardItem[] items = new Gson().fromJson(value, AwardItem[].class);
+        return items != null ? Arrays.asList(items) : null;
     }
 
     @TypeConverter
     public static String fromAwardItemList(List<AwardItem> list) {
-        Gson gson = new Gson();
         return gson.toJson(list);
     }
 
     // --- FactItem Converters ---
     @TypeConverter
     public static List<FactItem> fromStringToFactItemList(String value) {
-        Type listType = new TypeToken<List<FactItem>>() {}.getType();
-        return new Gson().fromJson(value, listType);
+        if (value == null) {
+            return null;
+        }
+        FactItem[] items = new Gson().fromJson(value, FactItem[].class);
+        return items != null ? Arrays.asList(items) : null;
     }
 
     @TypeConverter
     public static String fromFactItemList(List<FactItem> list) {
-        Gson gson = new Gson();
         return gson.toJson(list);
     }
 }

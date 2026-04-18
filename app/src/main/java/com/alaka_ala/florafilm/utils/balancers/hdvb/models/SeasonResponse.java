@@ -1,9 +1,12 @@
 // SeasonResponse.java
 package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
+@Keep
 public class SeasonResponse {
     private String title;
     private String id;

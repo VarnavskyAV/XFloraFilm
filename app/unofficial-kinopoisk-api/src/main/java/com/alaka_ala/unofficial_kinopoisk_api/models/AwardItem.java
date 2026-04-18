@@ -1,8 +1,11 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
+@Keep
 public class AwardItem {
     @SerializedName("name")
     private String name;

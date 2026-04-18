@@ -1,5 +1,6 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -9,6 +10,7 @@ import java.util.List;
 /**
  * Сущность для кэширования списков жанров и стран.
  */
+@Keep
 @Entity(tableName = "genres_countries_cache")
 public class FilmCountryOrGenresResponse {
 

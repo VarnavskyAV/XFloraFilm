@@ -1,7 +1,10 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
+@Keep
 public class FactItem {
     @SerializedName("text")
     private String text;

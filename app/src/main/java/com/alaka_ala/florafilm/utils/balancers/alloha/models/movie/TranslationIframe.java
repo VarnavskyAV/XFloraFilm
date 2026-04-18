@@ -1,6 +1,9 @@
 package com.alaka_ala.florafilm.utils.balancers.alloha.models.movie;
 
+import androidx.annotation.Keep;
+
 // Класс для переводов
+@Keep
 public class TranslationIframe {
     private String name;
     private String iframe;

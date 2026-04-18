@@ -1,11 +1,14 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
  * Оптимизированная модель страны
  * Использует аннотации Gson для автоматической сериализации/десериализации
  */
+@Keep
 public class Country extends BaseModel {
     
     @SerializedName("country")

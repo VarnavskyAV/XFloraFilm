@@ -1,11 +1,14 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
  * Модель, представляющая один похожий фильм в списке.
  * Извлечен из FilmSimilarResponse для лучшей структуры.
  */
+@Keep
 public class FilmSimilarItem {
     @SerializedName("filmId")
     private int filmId;

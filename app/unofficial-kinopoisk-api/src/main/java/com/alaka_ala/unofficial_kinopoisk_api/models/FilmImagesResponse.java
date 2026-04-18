@@ -1,5 +1,6 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -12,6 +13,7 @@ import java.util.List;
 /**
  * Модель ответа для запроса изображений фильма, адаптированная для Room.
  */
+@Keep
 @Entity(tableName = "film_images_response")
 @TypeConverters(Converters.class)
 public class FilmImagesResponse {

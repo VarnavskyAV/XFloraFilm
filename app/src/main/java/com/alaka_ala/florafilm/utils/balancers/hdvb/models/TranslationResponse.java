@@ -1,8 +1,11 @@
 // TranslationResponse.java
 package com.alaka_ala.florafilm.utils.balancers.hdvb.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
+@Keep
 public class TranslationResponse {
     private String file;
 

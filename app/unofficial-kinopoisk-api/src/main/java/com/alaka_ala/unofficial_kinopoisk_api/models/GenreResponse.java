@@ -1,11 +1,14 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
  * Вложенный класс для хранения данных о жанре.
  * Извлечен из FilmCountryOrGenresResponse для лучшей структуры.
  */
+@Keep
 public class GenreResponse {
     @SerializedName("id")
     private int id;

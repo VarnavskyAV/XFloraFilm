@@ -1,5 +1,6 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -10,6 +11,7 @@ import java.util.List;
 /**
  * Модель-обертка для кэширования списка сиквелов и приквелов.
  */
+@Keep
 @Entity(tableName = "film_sequels_and_prequels_response")
 @TypeConverters(Converters.class)
 public class FilmSequelsAndPrequelsResponse {

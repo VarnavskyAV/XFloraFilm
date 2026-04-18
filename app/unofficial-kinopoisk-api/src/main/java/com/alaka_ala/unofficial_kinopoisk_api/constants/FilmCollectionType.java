@@ -1,8 +1,11 @@
 package com.alaka_ala.unofficial_kinopoisk_api.constants;
 
+import androidx.annotation.Keep;
+
 /**
  * Перечисление доступных типов коллекций фильмов.
  */
+@Keep
 public enum FilmCollectionType {
     TOP_POPULAR_ALL("TOP_POPULAR_ALL"),
     TOP_POPULAR_MOVIES("TOP_POPULAR_MOVIES"),

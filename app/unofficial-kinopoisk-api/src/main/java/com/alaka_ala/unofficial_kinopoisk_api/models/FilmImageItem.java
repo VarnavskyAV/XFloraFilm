@@ -1,11 +1,14 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
  * Модель, представляющая одно изображение в списке.
  * Извлечен из FilmImagesResponse для лучшей структуры.
  */
+@Keep
 public class FilmImageItem {
     @SerializedName("imageUrl")
     private String imageUrl;

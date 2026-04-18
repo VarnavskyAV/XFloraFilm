@@ -1,11 +1,14 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
  * Модель, представляющая один сиквел или приквел в списке.
  * Извлечен из FilmSequelsAndPrequelsResponse для лучшей структуры.
  */
+@Keep
 public class FilmSequelOrPrequel {
     @SerializedName("filmId")
     private int filmId;

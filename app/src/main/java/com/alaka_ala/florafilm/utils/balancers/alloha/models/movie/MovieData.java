@@ -1,8 +1,11 @@
 package com.alaka_ala.florafilm.utils.balancers.alloha.models.movie;
 
+import androidx.annotation.Keep;
+
 import java.util.Map;
 
 // Основной класс с данными фильма
+@Keep
 public class MovieData {
     private String name;
     private String original_name;

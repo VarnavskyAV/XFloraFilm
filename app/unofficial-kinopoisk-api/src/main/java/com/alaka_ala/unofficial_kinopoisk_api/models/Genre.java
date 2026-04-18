@@ -1,11 +1,14 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
  * Оптимизированная модель жанра
  * Использует аннотации Gson для автоматической сериализации/десериализации
  */
+@Keep
 public class Genre extends BaseModel {
     
     @SerializedName("genre")

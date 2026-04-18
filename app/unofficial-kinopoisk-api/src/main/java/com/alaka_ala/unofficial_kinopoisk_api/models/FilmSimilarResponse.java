@@ -1,5 +1,6 @@
 package com.alaka_ala.unofficial_kinopoisk_api.models;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -13,6 +14,7 @@ import java.util.List;
  * Модель ответа для запроса похожих фильмов, адаптированная для Room.
  * Хранит список похожих фильмов и метаданные.
  */
+@Keep
 @Entity(tableName = "film_similar_response")
 @TypeConverters(Converters.class)
 public class FilmSimilarResponse {
