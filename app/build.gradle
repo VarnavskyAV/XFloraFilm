@@ -10,8 +10,8 @@ android {
         applicationId "com.alaka_ala.florafilm"
         minSdk 28
         targetSdk 36
-        versionCode 4
-        versionName "2.0.0.4"
+        versionCode 60
+        versionName "2.0.0.5"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -27,7 +27,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

@@ -11,6 +11,7 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.widget.Toast;
 
+import androidx.annotation.Keep;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 
@@ -35,9 +36,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+@Keep
 public class AppUpdateManager {
     // Github токен
-    private static final String GITHUB_TOKEN = "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";
+    private static final String GITHUB_TOKEN = "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";
     private static final String METADATA_URL = "https://raw.githubusercontent.com/VarnavskyAV/XFloraFilm/refs/heads/master/app/release/output-metadata.json";
     private static final String APK_BASE_URL = "https://raw.githubusercontent.com/VarnavskyAV/XFloraFilm/refs/heads/master/app/release";
 
@@ -165,7 +167,8 @@ public class AppUpdateManager {
         }
     }
 
-    // Загрузка и парсинг metadata.json
+
+    @Keep
     private OutputMetadata downloadMetadata() throws IOException {
         Request request = new Request.Builder()
                 .url(METADATA_URL)
