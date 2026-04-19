@@ -15,7 +15,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentHomeBinding;
@@ -27,19 +30,29 @@ import com.alaka_ala.unofficial_kinopoisk_api.models.FilmItem;
 import com.google.android.material.appbar.AppBarLayout;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Random;
 
 public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickListener, FilmCollectionAdapter.OnCollectionClickListener {
     private FragmentHomeBinding binding;
     private AppBarLayout appBarLayout;
     private KinopoiskApiClientV2 kinopoiskApiClientV2;
+    private HeroRowAdapter heroRowAdapter;
     private FilmCollectionAdapter filmCollectionAdapter;
+    private ConcatAdapter concatAdapter;
     private final List<FilmCollectionAdapter.FilmCollectionItem> filmCollectionItems = new ArrayList<>();
     private final Queue<FilmCollectionType> filmCollectionTypeQueue = new LinkedList<>();
+    /**
+     * Живёт в экземпляре фрагмента при уходе на FilmDetails: view уничтожается, список коллекций остаётся,
+     * а новый {@link HeroRowAdapter} без кэша снова показывал бы вечный progress.
+     */
+    @Nullable
+    private ArrayList<FilmItem> cachedHeroFilms;
 
     private Parcelable mainRecyclerViewState;
     private final HashMap<String, Parcelable> nestedRecyclerViewStates = new HashMap<>();
@@ -78,6 +91,9 @@ public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickLis
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        if (cachedHeroFilms != null && !cachedHeroFilms.isEmpty() && heroRowAdapter != null) {
+            heroRowAdapter.setFilms(new ArrayList<>(cachedHeroFilms));
+        }
         if (filmCollectionItems.isEmpty()) {
             loadFilmCollections();
         }
@@ -106,28 +122,77 @@ public class HomeFragment extends Fragment implements FilmAdapter.OnFilmClickLis
     }
 
     private void setupRecyclerView() {
+        heroRowAdapter = new HeroRowAdapter();
+        heroRowAdapter.setOnFilmClickListener(this);
         filmCollectionAdapter = new FilmCollectionAdapter(filmCollectionItems, nestedRecyclerViewStates);
         filmCollectionAdapter.setOnFilmClickListener(this);
         filmCollectionAdapter.setOnCollectionClickListener(this);
+        concatAdapter = new ConcatAdapter(heroRowAdapter, filmCollectionAdapter);
         binding.collectionsRecyclerview.setLayoutManager(new LinearLayoutManager(getContext()));
-        binding.collectionsRecyclerview.setAdapter(filmCollectionAdapter);
+        binding.collectionsRecyclerview.setAdapter(concatAdapter);
+        // notifyItemChanged у героя иначе даёт анимацию «change»: временная копия ячейки (пустой шаблон за контентом).
+        RecyclerView.ItemAnimator animator = binding.collectionsRecyclerview.getItemAnimator();
+        if (animator instanceof SimpleItemAnimator) {
+            ((SimpleItemAnimator) animator).setSupportsChangeAnimations(false);
+        }
     }
 
     private void loadFilmCollections() {
-        filmCollectionTypeQueue.add(FilmCollectionType.TOP_POPULAR_ALL);
-        filmCollectionTypeQueue.add(FilmCollectionType.POPULAR_SERIES);
-        filmCollectionTypeQueue.add(FilmCollectionType.TOP_POPULAR_MOVIES);
-
-        // Add other collections to the queue
+        filmCollectionTypeQueue.clear();
+        List<FilmCollectionType> pool = new ArrayList<>();
         for (FilmCollectionType type : FilmCollectionType.values()) {
-            if (type != FilmCollectionType.TOP_POPULAR_ALL &&
-                    type != FilmCollectionType.TOP_POPULAR_MOVIES &&
-                    type != FilmCollectionType.POPULAR_SERIES) {
-                filmCollectionTypeQueue.add(type);
+            if (type != FilmCollectionType.TOP_POPULAR_ALL) {
+                pool.add(type);
             }
         }
+        long shuffleSeed = System.nanoTime() ^ System.currentTimeMillis();
+        Collections.shuffle(pool, new Random(shuffleSeed));
+        filmCollectionTypeQueue.addAll(pool);
 
-        loadNextCollection();
+        kinopoiskApiClientV2.getFilmCollection(FilmCollectionType.TOP_POPULAR_ALL, 1, false, new KinopoiskApiClientV2.ApiCallback<FilmCollection>() {
+            @Override
+            public void onSuccess(FilmCollection result) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (binding == null) {
+                        return;
+                    }
+                    List<FilmItem> hero = pickHeroItems(result.getItems(), shuffleSeed ^ 0x9E3779B97F4A7C15L);
+                    if (!hero.isEmpty()) {
+                        cachedHeroFilms = new ArrayList<>(hero);
+                    } else {
+                        cachedHeroFilms = null;
+                    }
+                    heroRowAdapter.setFilms(hero);
+                    loadNextCollection();
+                    if (mainRecyclerViewState != null) {
+                        // TODO: Почему то иногда здесь крашит. Хз почему. Позже разберусь 02.11.25 21:00
+                        binding.collectionsRecyclerview.getLayoutManager().onRestoreInstanceState(mainRecyclerViewState);
+                        mainRecyclerViewState = null;
+                    }
+                });
+            }
+
+            @Override
+            public void onError(KinopoiskApiClientV2.ApiException error) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (binding != null) {
+                        cachedHeroFilms = null;
+                        heroRowAdapter.setFilms(new ArrayList<>());
+                    }
+                    loadNextCollection();
+                });
+            }
+        });
+    }
+
+    private static List<FilmItem> pickHeroItems(List<FilmItem> items, long seed) {
+        if (items == null || items.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<FilmItem> copy = new ArrayList<>(items);
+        Collections.shuffle(copy, new Random(seed));
+        int n = Math.min(6, copy.size());
+        return new ArrayList<>(copy.subList(0, n));
     }
 
     private void loadNextCollection() {

@@ -8,4 +8,22 @@
     <string name="back_button_description">Back button</string>
     <string name="api_key_hdvb">b9ae5f8c4832244060916af4aa9d1939</string>
     <string name="api_key_alloha">4cd98e08f1e1f0273692e35b16b690</string>
+    <string name="home_hero_headline">Сегодня в тренде</string>
+    <string name="home_hero_subtitle">Подборка меняется при каждом открытии главной</string>
+    <string name="collection_row_hint">Свайп влево, чтобы увидеть ещё</string>
+    <string name="collection_open_hint">Открыть всю подборку</string>
+    <string name="activity_page_title">Активность</string>
+    <string name="activity_page_subtitle">Избранное, продолжение просмотра и история</string>
+    <string name="activity_empty_title">Пока ничего нет</string>
+    <string name="activity_empty_message">Добавляйте фильмы в избранное и смотрите — здесь появятся закладки, точки остановки и история просмотров.</string>
+    <string name="activity_section_bookmarks">Избранное</string>
+    <string name="activity_section_bookmarks_hint">Сохранённые фильмы и сериалы</string>
+    <string name="activity_section_resume">Продолжить просмотр</string>
+    <string name="activity_section_resume_hint">С того места, где остановились</string>
+    <string name="activity_section_history">История просмотров</string>
+    <string name="activity_section_history_hint">Недавно открытые карточки</string>
+    <string name="activity_menu_sections">Разделы экрана</string>
+    <string name="activity_menu_show_all_sections">Показать все разделы</string>
+    <string name="activity_empty_all_hidden_title">Все разделы скрыты</string>
+    <string name="activity_empty_all_hidden_message">Включите нужные списки через меню на панели (иконка настроек) → «Разделы экрана», либо нажмите «Показать все разделы».</string>
 </resources>

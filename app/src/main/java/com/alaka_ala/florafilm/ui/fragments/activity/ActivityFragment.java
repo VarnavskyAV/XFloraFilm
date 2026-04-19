@@ -1,9 +1,14 @@
 package com.alaka_ala.florafilm.ui.fragments.activity;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -13,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentActivityBinding;
@@ -23,6 +29,8 @@ import com.alaka_ala.unofficial_kinopoisk_api.db.KinopoiskDatabaseV2;
 import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 import com.google.android.material.appbar.AppBarLayout;
 
+import java.util.List;
+
 public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnItemClickListener {
     private FragmentActivityBinding binding;
     private FilmDetailsDao filmDetailsDao;
@@ -32,6 +40,17 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
     private HistoryViewAdapter historyAdapter;
     private HistoryViewAdapter resumeAdapter;
     private HistoryViewAdapter bookmarkAdapter;
+
+    /** Размеры из LiveData: {@link androidx.recyclerview.widget.ListAdapter#submitList} обновляет список асинхронно, нельзя полагаться на {@code getItemCount()} сразу после вызова. */
+    private int historyCount;
+    private int resumeCount;
+    private int bookmarkCount;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
 
     @Nullable
     @Override
@@ -65,42 +84,32 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
      * Настраивает RecyclerView, устанавливая LayoutManager и адаптеры.
      */
     private void setupRecyclerView() {
-        boolean isViewListBookmark = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, getContext());
-        if (!isViewListBookmark) {
-            rvBookmark.setVisibility(View.GONE);
-        }
         bookmarkAdapter = new HistoryViewAdapter(HistoryViewAdapter.ViewTypeItem.HORIZONTAL);
         bookmarkAdapter.setOnItemClickListener(this);
         rvBookmark.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvBookmark.setAdapter(bookmarkAdapter);
+        stripChangeAnimations(rvBookmark);
 
-
-        boolean isViewListHistory = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, getContext());
-        if (!isViewListHistory){
-            rvHistoryView.setVisibility(View.GONE);
-        }
         historyAdapter = new HistoryViewAdapter(HistoryViewAdapter.ViewTypeItem.HORIZONTAL);
         historyAdapter.setOnItemClickListener(this);
         rvHistoryView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvHistoryView.setAdapter(historyAdapter);
+        stripChangeAnimations(rvHistoryView);
 
-        boolean isViewListResumeview = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, getContext());
-        if (!isViewListResumeview){
-            rvResumeView.setVisibility(View.GONE);
-        }
         resumeAdapter = new HistoryViewAdapter(HistoryViewAdapter.ViewTypeItem.HORIZONTAL);
         resumeAdapter.setOnItemClickListener(this);
         rvResumeView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
         rvResumeView.setAdapter(resumeAdapter);
-
-        if (!isViewListBookmark && !isViewListHistory && !isViewListResumeview){
-            MainActivity activity = (MainActivity) getActivity();
-            activity.showBottomNavigationView();
-        }
+        stripChangeAnimations(rvResumeView);
 
         setupFilterTitle();
+    }
 
-
+    private static void stripChangeAnimations(RecyclerView recyclerView) {
+        RecyclerView.ItemAnimator animator = recyclerView.getItemAnimator();
+        if (animator instanceof SimpleItemAnimator) {
+            ((SimpleItemAnimator) animator).setSupportsChangeAnimations(false);
+        }
     }
 
     private void setupFilterTitle() {
@@ -134,7 +143,10 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
                                     !isVisible);
                             isVisible = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
                                     AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, getContext());
-                            rvBookmark.setVisibility(isVisible ? View.VISIBLE : View.GONE);
+                            updateUiVisibility();
+                            if (getActivity() != null) {
+                                getActivity().invalidateOptionsMenu();
+                            }
                         }
                     }
                 });
@@ -173,7 +185,10 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
                             );
                             isVisible = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
                                     AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, getContext());
-                            rvHistoryView.setVisibility(isVisible ? View.VISIBLE : View.GONE);
+                            updateUiVisibility();
+                            if (getActivity() != null) {
+                                getActivity().invalidateOptionsMenu();
+                            }
                         }
                     }
                 });
@@ -213,7 +228,10 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
                             );
                             isVisible = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
                                     AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, getContext());
-                            rvResumeView.setVisibility(isVisible ? View.VISIBLE : View.GONE);
+                            updateUiVisibility();
+                            if (getActivity() != null) {
+                                getActivity().invalidateOptionsMenu();
+                            }
                         }
                     }
                 });
@@ -229,19 +247,26 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
      */
     private void observeData() {
         filmDetailsDao.getByView().observe(getViewLifecycleOwner(), historyList -> {
+            historyCount = listSize(historyList);
             historyAdapter.submitList(historyList);
             updateUiVisibility();
         });
 
         filmDetailsDao.getByIsStartView().observe(getViewLifecycleOwner(), resumeList -> {
+            resumeCount = listSize(resumeList);
             resumeAdapter.submitList(resumeList);
             updateUiVisibility();
         });
 
         filmDetailsDao.getByBookmark().observe(getViewLifecycleOwner(), bookmarkList -> {
+            bookmarkCount = listSize(bookmarkList);
             bookmarkAdapter.submitList(bookmarkList);
             updateUiVisibility();
         });
+    }
+
+    private static int listSize(List<?> list) {
+        return list == null ? 0 : list.size();
     }
 
     /**
@@ -250,22 +275,144 @@ public class ActivityFragment extends Fragment implements HistoryViewAdapter.OnI
      * В противном случае, разделы без данных скрываются.
      */
     private void updateUiVisibility() {
-        boolean historyEmpty = historyAdapter.getItemCount() == 0;
-        boolean resumeEmpty = resumeAdapter.getItemCount() == 0;
-        boolean bookmarksEmpty = bookmarkAdapter.getItemCount() == 0;
+        Context ctx = getContext();
+        if (ctx == null || binding == null) {
+            return;
+        }
 
+        boolean showBookmarkList = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, ctx);
+        boolean showHistoryList = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, ctx);
+        boolean showResumeList = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, ctx);
 
-        if (historyEmpty && resumeEmpty && bookmarksEmpty) {
-            binding.textView4.setVisibility(View.VISIBLE);
+        boolean anySectionEnabled = showBookmarkList || showHistoryList || showResumeList;
+
+        boolean showBookmark = showBookmarkList && bookmarkCount > 0;
+        boolean showHistory = showHistoryList && historyCount > 0;
+        boolean showResume = showResumeList && resumeCount > 0;
+        boolean anyVisibleBlock = showBookmark || showHistory || showResume;
+
+        if (!anySectionEnabled) {
+            binding.emptyStateTitle.setText(R.string.activity_empty_all_hidden_title);
+            binding.emptyStateMessage.setText(R.string.activity_empty_all_hidden_message);
+            binding.emptyState.setVisibility(View.VISIBLE);
+            binding.activityPageHeader.setVisibility(View.VISIBLE);
+            binding.activitySections.setVisibility(View.GONE);
+            binding.bookmarkRootLinear.setVisibility(View.GONE);
             binding.historyRootLinear.setVisibility(View.GONE);
             binding.resumeRootLinear.setVisibility(View.GONE);
-            binding.bookmarkRootLinear.setVisibility(View.GONE);
-        } else {
-            binding.textView4.setVisibility(View.GONE);
-            binding.historyRootLinear.setVisibility(historyEmpty ? View.GONE : View.VISIBLE);
-            binding.resumeRootLinear.setVisibility(resumeEmpty ? View.GONE : View.VISIBLE);
-            binding.bookmarkRootLinear.setVisibility(bookmarksEmpty ? View.GONE : View.VISIBLE);
+            return;
         }
+
+        binding.emptyStateTitle.setText(R.string.activity_empty_title);
+        binding.emptyStateMessage.setText(R.string.activity_empty_message);
+
+        if (!anyVisibleBlock) {
+            binding.emptyState.setVisibility(View.VISIBLE);
+            binding.activityPageHeader.setVisibility(View.VISIBLE);
+            binding.activitySections.setVisibility(View.GONE);
+            binding.bookmarkRootLinear.setVisibility(View.GONE);
+            binding.historyRootLinear.setVisibility(View.GONE);
+            binding.resumeRootLinear.setVisibility(View.GONE);
+            return;
+        }
+
+        binding.emptyState.setVisibility(View.GONE);
+        binding.activityPageHeader.setVisibility(View.VISIBLE);
+        binding.activitySections.setVisibility(View.VISIBLE);
+        binding.bookmarkRootLinear.setVisibility(showBookmark ? View.VISIBLE : View.GONE);
+        binding.historyRootLinear.setVisibility(showHistory ? View.VISIBLE : View.GONE);
+        binding.resumeRootLinear.setVisibility(showResume ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        inflater.inflate(R.menu.activity_fragment_menu, menu);
+    }
+
+    @Override
+    public void onPrepareOptionsMenu(@NonNull Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        Context ctx = getContext();
+        if (ctx == null) {
+            return;
+        }
+        MenuItem sectionsItem = menu.findItem(R.id.activity_menu_sections);
+        SubMenu sectionsSub = sectionsItem != null ? sectionsItem.getSubMenu() : null;
+        MenuItem resume = menu.findItem(R.id.activity_menu_show_resume);
+        MenuItem bookmark = menu.findItem(R.id.activity_menu_show_bookmark);
+        MenuItem history = menu.findItem(R.id.activity_menu_show_history);
+        if (resume == null && sectionsSub != null) {
+            resume = sectionsSub.findItem(R.id.activity_menu_show_resume);
+        }
+        if (bookmark == null && sectionsSub != null) {
+            bookmark = sectionsSub.findItem(R.id.activity_menu_show_bookmark);
+        }
+        if (history == null && sectionsSub != null) {
+            history = sectionsSub.findItem(R.id.activity_menu_show_history);
+        }
+        if (resume != null) {
+            resume.setChecked(AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, ctx));
+        }
+        if (bookmark != null) {
+            bookmark.setChecked(AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, ctx));
+        }
+        if (history != null) {
+            history.setChecked(AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, ctx));
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        Context ctx = getContext();
+        if (ctx == null) {
+            return super.onOptionsItemSelected(item);
+        }
+        int id = item.getItemId();
+        if (id == R.id.activity_menu_show_all) {
+            AppPreferences.ActivityListViewAdapters.setVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, ctx, true);
+            AppPreferences.ActivityListViewAdapters.setVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, ctx, true);
+            AppPreferences.ActivityListViewAdapters.setVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, ctx, true);
+            updateUiVisibility();
+            requireActivity().invalidateOptionsMenu();
+            return true;
+        }
+        if (id == R.id.activity_menu_show_resume) {
+            boolean cur = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, ctx);
+            AppPreferences.ActivityListViewAdapters.setVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.RESUMEVIEW, ctx, !cur);
+            updateUiVisibility();
+            requireActivity().invalidateOptionsMenu();
+            return true;
+        }
+        if (id == R.id.activity_menu_show_bookmark) {
+            boolean cur = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, ctx);
+            AppPreferences.ActivityListViewAdapters.setVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.BOOKMARK, ctx, !cur);
+            updateUiVisibility();
+            requireActivity().invalidateOptionsMenu();
+            return true;
+        }
+        if (id == R.id.activity_menu_show_history) {
+            boolean cur = AppPreferences.ActivityListViewAdapters.getVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, ctx);
+            AppPreferences.ActivityListViewAdapters.setVisibleAdapter(
+                    AppPreferences.ActivityListViewAdapters.ListNames.HISTORYVIEW, ctx, !cur);
+            updateUiVisibility();
+            requireActivity().invalidateOptionsMenu();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override

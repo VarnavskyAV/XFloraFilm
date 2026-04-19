@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/activity_menu_sections"
+        android:icon="@drawable/settings"
+        android:title="@string/activity_menu_sections"
+        app:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/activity_menu_show_resume"
+                android:checkable="true"
+                android:checked="true"
+                android:title="@string/activity_section_resume" />
+            <item
+                android:id="@+id/activity_menu_show_bookmark"
+                android:checkable="true"
+                android:checked="true"
+                android:title="@string/activity_section_bookmarks" />
+            <item
+                android:id="@+id/activity_menu_show_history"
+                android:checkable="true"
+                android:checked="true"
+                android:title="@string/activity_section_history" />
+            <item
+                android:id="@+id/activity_menu_show_all"
+                android:title="@string/activity_menu_show_all_sections" />
+        </menu>
+    </item>
+</menu>

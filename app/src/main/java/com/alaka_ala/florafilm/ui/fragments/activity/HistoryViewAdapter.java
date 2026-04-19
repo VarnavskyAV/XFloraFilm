@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import java.util.Locale;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -105,9 +107,27 @@ public class HistoryViewAdapter extends ListAdapter<FilmDetails, HistoryViewAdap
          */
         public void bind(FilmDetails film) {
             filmTitle.setText(film.getNameRu());
-            filmRating.setText(String.valueOf(film.getRatingKinopoisk()));
-            
-            String yearGenre = film.getYear() + ", " + (film.getGenres().isEmpty() ? "" : film.getGenres().get(0).getName());
+
+            Double rating = film.getRatingKinopoisk();
+            if (rating != null && rating > 0) {
+                filmRating.setText(String.format(Locale.getDefault(), "★ %.1f", rating));
+                filmRating.setVisibility(View.VISIBLE);
+            } else {
+                filmRating.setVisibility(View.GONE);
+            }
+
+            String year = film.getYear();
+            String genre = film.getGenres().isEmpty() ? "" : film.getGenres().get(0).getName();
+            String yearGenre;
+            if (year != null && !year.isEmpty() && !genre.isEmpty()) {
+                yearGenre = year + " · " + genre;
+            } else if (!genre.isEmpty()) {
+                yearGenre = genre;
+            } else if (year != null && !year.isEmpty()) {
+                yearGenre = year;
+            } else {
+                yearGenre = "";
+            }
             filmYearGenre.setText(yearGenre);
 
             Glide.with(itemView.getContext())
