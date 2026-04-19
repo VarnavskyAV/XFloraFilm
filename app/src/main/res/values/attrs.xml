@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <attr name="MainColorApp" format="color"/>  <!-- Основной цвет приложения -->
+    <attr name="MainColorContainerApp" format="color"/>  <!-- для CardView. Контейнерный цвет приложения -->
+
     <attr name="MyGradientColor" format="color"/>
     <attr name="IconTintToolbar" format="color"/>
     <attr name="StrokeUpdateColor" format="color"/>

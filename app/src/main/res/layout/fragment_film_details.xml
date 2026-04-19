@@ -10,6 +10,7 @@
         android:id="@+id/app_bar_layout"
         android:layout_width="match_parent"
         android:layout_height="600dp"
+        android:background="?attr/MainColorApp"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
         <com.google.android.material.appbar.CollapsingToolbarLayout
@@ -50,6 +51,7 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            app:cardBackgroundColor="?attr/MainColorApp"
             app:strokeWidth="0dp">
 
             <LinearLayout
@@ -61,6 +63,7 @@
 
                 <TextView
                     android:id="@+id/film_details_title"
+                    style="?attr/textAppearanceTitleMedium"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:singleLine="true"
@@ -85,8 +88,10 @@
                         android:id="@+id/buttonResumeWatch"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:backgroundTint="#C4CA52"
                         android:enabled="true"
-                        android:text="Продолжить" />
+                        android:text="Продолжить"
+                        android:textColor="#686666" />
 
                     <TextView
                         android:id="@+id/textViewResumeWatch"
@@ -127,6 +132,7 @@
 
                 <TextView
                     android:id="@+id/film_details_description_label"
+                    style="?attr/textAppearanceTitleMedium"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
@@ -157,6 +163,7 @@
 
                 <TextView
                     android:id="@+id/textView5"
+                    style="?attr/textAppearanceTitleMedium"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
@@ -181,6 +188,7 @@
 
                 <TextView
                     android:id="@+id/textView6"
+                    style="?attr/textAppearanceTitleMedium"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="36dp"

@@ -1,5 +1,6 @@
 package com.alaka_ala.florafilm.ui.fragments.home;
 
+import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -105,11 +106,12 @@ public class FilmAdapter extends RecyclerView.Adapter<FilmAdapter.FilmViewHolder
             });
         }
 
+        @SuppressLint("SetTextI18n")
         public void bind(FilmItem film) {
             title.setText(film.getBestName());
 
             if (film.getRatingKinopoisk() > 0) {
-                rating.setText("⭐ " + film.getRatingKinopoisk());
+                rating.setText("★ " + film.getRatingKinopoisk());
                 rating.setVisibility(View.VISIBLE);
             } else {
                 rating.setVisibility(View.GONE);

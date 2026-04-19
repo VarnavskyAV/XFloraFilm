@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#F1FFFFFF</color>
+    <color name="black">#FF000000</color> <!-- Основной цвет приложения в ночной теме -->
+    <color name="white">#F1FFFFFF</color> <!-- Основной цвет приложения в дневной теме -->
+    <color name="ColorWhiteColorContainerApp">#EFEFEF</color> <!-- Для CardView. Контейнерный цвет приложения в дневной теме -->
+    <color name="ColorDarkMainColorContainerApp">#E6141414</color> <!-- Для CardView. Контейнерный цвет приложения в ночной теме -->
+
 
     <!-- ... другие цвета ... -->
     <color name="chip_background_color">#E0E0E0</color> <!-- Светло-серый фон -->
@@ -21,6 +24,7 @@
 
     <color name="ButtonThemeLight">#70ADB8</color>
     <color name="ButtonThemeDark">#93B8BF</color>
+
 
 
 

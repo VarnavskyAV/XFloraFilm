@@ -34,7 +34,8 @@
                     android:layout_height="wrap_content"
                     android:text="@string/activity_page_title"
                     android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:visibility="gone" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -104,7 +105,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"
                     android:visibility="gone"
-                    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                    app:cardBackgroundColor="?attr/MainColorContainerApp"
                     app:cardCornerRadius="18dp"
                     app:cardElevation="1dp"
                     app:strokeWidth="0dp"
@@ -187,7 +188,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"
                     android:visibility="gone"
-                    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                    app:cardBackgroundColor="?attr/MainColorContainerApp"
                     app:cardCornerRadius="18dp"
                     app:cardElevation="1dp"
                     app:strokeWidth="0dp"
@@ -270,7 +271,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"
                     android:visibility="gone"
-                    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                    app:cardBackgroundColor="?attr/MainColorContainerApp"
                     app:cardCornerRadius="18dp"
                     app:cardElevation="1dp"
                     app:strokeWidth="0dp"

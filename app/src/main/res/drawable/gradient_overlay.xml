@@ -3,5 +3,5 @@
     <gradient
         android:angle="270"
         android:startColor="#00000000"
-        android:endColor="?attr/MyGradientColor"/> <!-- Конкретный цвет вместо ?attr/ -->
+        android:endColor="?attr/MainColorApp"/> <!-- Конкретный цвет вместо ?attr/ -->
 </shape>
