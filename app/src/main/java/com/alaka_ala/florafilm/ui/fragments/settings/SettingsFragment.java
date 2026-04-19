@@ -20,7 +20,7 @@ import com.alaka_ala.florafilm.databinding.FragmentSettingsBinding;
 import com.alaka_ala.florafilm.ui.activities.MainActivity;
 import com.alaka_ala.florafilm.utils.appUpdate.AppUpdateManager;
 import com.alaka_ala.florafilm.utils.appUpdate.models.UpdateInfo;
-import com.alaka_ala.florafilm.utils.preferences.AppPreferences;
+import com.alaka_ala.florafilm.utils.settings.AppPreferences;
 import com.google.android.material.checkbox.MaterialCheckBox;
 
 import java.io.File;

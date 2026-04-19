@@ -1,11 +1,13 @@
 package com.alaka_ala.florafilm.ui.activities;
 
+import android.content.DialogInterface;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -13,19 +15,30 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.LiveData;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.alaka_ala.florafilm.R;
+import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter;
+import com.alaka_ala.florafilm.utils.balancers.alloha.AllohaApiClient;
+import com.alaka_ala.florafilm.utils.other.ContentStructureTracker;
+import com.alaka_ala.unofficial_kinopoisk_api.db.FilmDetailsDao;
+import com.alaka_ala.unofficial_kinopoisk_api.db.KinopoiskDatabaseV2;
+import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView navView;
     private NavController navController;
     private Toolbar toolbar;
+    private FilmDetailsDao filmDetailsDao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,11 +61,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         boolean isSystemInDarkTheme = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-        if (!isSystemInDarkTheme) {
-            WindowCompat.getInsetsController(getWindow(), rootLayout).setAppearanceLightStatusBars(true);
-        } else {
-            WindowCompat.getInsetsController(getWindow(), rootLayout).setAppearanceLightStatusBars(false);
-        }
+        WindowCompat.getInsetsController(getWindow(), rootLayout).setAppearanceLightStatusBars(!isSystemInDarkTheme);
 
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.navigation_home, R.id.navigation_activity, R.id.navigation_menu)
@@ -63,6 +72,8 @@ public class MainActivity extends AppCompatActivity {
 
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(navView, navController);
+
+        filmDetailsDao = KinopoiskDatabaseV2.getDatabase(this).filmDetailsDao();
     }
 
     public void showBottomNavigationView() {
@@ -135,5 +146,50 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onSupportNavigateUp() {
         return navController.navigateUp() || super.onSupportNavigateUp();
+    }
+
+
+
+    // TODO: Доделать отслеживание новых событий в фильме
+    // Не доделанный код проверки изменений данных в базе на фильм.
+    private void runContentStructureTracker() {
+        ContentStructureTracker tracker = new ContentStructureTracker(this);
+        // Получаем список ID которые отслеживаются.
+        List<FilmDetails> films = filmDetailsDao.getFilmByObserveVoice().getValue();
+        int kinopoiskId = films.get(0).getKinopoiskId();
+        boolean isSerial = films.get(0).isSerial();
+        AllohaApiClient allohaApiClient = new AllohaApiClient("4cd98e08f1e1f0273692e35b16b690");
+        getMainExecutor().execute(() -> {
+            try {
+                allohaApiClient.fetch(kinopoiskId, new SelectorVoiceAdapter.AdapterData.AdapterDataCallback() {
+                    @Override
+                    public void onDataReady(SelectorVoiceAdapter.AdapterData data) {
+                        boolean hasChanged = tracker.hasStructureChanged(String.valueOf(kinopoiskId), isSerial, data.getRootFolders());
+                        if (hasChanged) {
+                            MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(getApplicationContext());
+                            alert.setTitle("Найдены изменения в Фильме/Сериале");
+                            alert.setPositiveButton("Перейти", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    Bundle bundle = new Bundle();
+                                    bundle.putInt("kinopoiskId", kinopoiskId);
+                                    navController.navigate(R.id.action_navigation_home_to_filmDetailsFragment, bundle);
+                                }
+                            });
+                            alert.show();
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Toast.makeText(MainActivity.this, "ERROR: " + error, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+
     }
 }

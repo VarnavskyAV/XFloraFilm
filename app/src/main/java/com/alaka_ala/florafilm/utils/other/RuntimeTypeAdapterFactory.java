@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.alaka_ala.florafilm.utils.gson;
+package com.alaka_ala.florafilm.utils.other;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;

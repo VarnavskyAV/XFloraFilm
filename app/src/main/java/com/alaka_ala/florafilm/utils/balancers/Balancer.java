@@ -10,5 +10,5 @@ public interface Balancer {
      */
     int HDVB_ID = 0;
 
-    int ALLOHA_ID =1;
+    int ALLOHA_ID = 1;
 }

@@ -1,4 +1,4 @@
-package com.alaka_ala.florafilm.utils.jacred;
+package com.alaka_ala.florafilm.utils.balancers.jacred;
 import java.util.List;
 
 public interface TorrentCallback {
