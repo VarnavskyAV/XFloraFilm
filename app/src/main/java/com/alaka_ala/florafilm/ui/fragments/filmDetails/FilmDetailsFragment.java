@@ -460,7 +460,9 @@ public class FilmDetailsFragment extends Fragment {
             binding.resumeButtonRootLayout.setVisibility(VISIBLE);
             binding.textViewResumeWatch.setText(titleBalancer + " / Сезон - " + titleSeason + " / Серия - " + titleEpisode + " / Озвучка - " + titleVoice + " / Качество - " + titleQuality);
 
-        } else {
+        }
+        else {
+            // TODO Сделать восстановление просмотра по кнопке ... ИСправить условие в else
             if (selectableIndexPath.size() <= INDEX_QUALITY) {
                 binding.resumeButtonRootLayout.setVisibility(GONE);
                 return;

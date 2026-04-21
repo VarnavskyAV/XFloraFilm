@@ -28,12 +28,14 @@ public interface FilmDetailsDao {
     void insert(FilmDetails filmDetails);
 
     /**
-     * Вставляет новый FilmDetails, но сохраняет карту позиций просмотра от старой записи.
+     * Вставляет новый FilmDetails, но сохраняет карту позиций просмотра от старой записи.<br>
+     * Карта позиций Нужна для восстановления long позции просмотра, а не выбранной серии, сезона и т.д.
+     * Все данные перезаписыфваются кроме Long позиции данных, в том числе последняя выбранный сезон, серия и т.д.
      * @param filmDetails Новый объект с данными о фильме.
      */
     @Transaction
     default void insertAndPreservePositions(FilmDetails filmDetails) {
-        com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails oldDetails = getById(filmDetails.getKinopoiskId());
+        FilmDetails oldDetails = getById(filmDetails.getKinopoiskId());
         if (oldDetails != null) {
             filmDetails.setLastPositionPlayerView(oldDetails.getLastPositionPlayerView());
         }

@@ -3,6 +3,7 @@
     <style name="Base.Theme.FloraFilmX" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="MainColorApp">@color/black</item>
         <item name="MainColorContainerApp">@color/ColorDarkMainColorContainerApp</item>
+        <item name="AttrBottomColorBackgroundMain">@color/ColorDarkBottomColorBackgroundMain</item>
         <item name="MyGradientColor">@color/gradient_poster_color_dark</item>
         <item name="android:statusBarColor">?attr/MyGradientColor</item>
         <item name="IconTintToolbar">@color/optionIconTintLight</item>

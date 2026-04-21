@@ -41,11 +41,9 @@
         android:background="@drawable/bottom_nav_bar_bg"
         android:elevation="10dp"
         android:paddingTop="6dp"
-        app:backgroundTint="#F5090909"
+        app:backgroundTint="?attr/AttrBottomColorBackgroundMain"
         app:itemIconSize="16dp"
-        app:itemIconTint="#FFFFFF"
         app:itemRippleColor="?attr/colorSecondary"
-        app:itemTextColor="@color/material_dynamic_neutral80"
         app:labelVisibilityMode="selected"
         app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior"
         app:menu="@menu/bottom_nav_menu" />

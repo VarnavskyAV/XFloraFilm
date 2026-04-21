@@ -38,10 +38,9 @@ import okhttp3.Response;
 
 @Keep
 public class AppUpdateManager {
-    // Github токен
-    private static final String GITHUB_TOKEN = "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";
+    // Открытый репозиторий - токен не требуется
     private static final String METADATA_URL = "https://raw.githubusercontent.com/VarnavskyAV/XFloraFilm/refs/heads/master/app/release/output-metadata.json";
-    private static final String APK_BASE_URL = "https://raw.githubusercontent.com/VarnavskyAV/XFloraFilm/refs/heads/master/app/release";
+    private static final String APK_BASE_URL = "https://github.com/VarnavskyAV/XFloraFilm/raw/refs/heads/master/app/release/app-release.apk";
 
     private static AppUpdateManager INSTANCE;
 
@@ -70,17 +69,10 @@ public class AppUpdateManager {
     private AppUpdateManager(Context context) {
         this.context = context.getApplicationContext();
 
+        // Для открытого репозитория не нужна авторизация
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
-                .addInterceptor(chain -> {
-                    Request original = chain.request();
-                    Request request = original.newBuilder()
-                            .header("Authorization", "token " + GITHUB_TOKEN)
-                            .method(original.method(), original.body())
-                            .build();
-                    return chain.proceed(request);
-                })
                 .build();
 
         this.mainHandler = new Handler(Looper.getMainLooper());
@@ -136,7 +128,8 @@ public class AppUpdateManager {
                         int currentVersionCode = getCurrentVersionCode();
 
                         if (remoteVersionCode > currentVersionCode) {
-                            String apkDownloadUrl = APK_BASE_URL + "/" + latestElement.getOutputFile();
+                            // Для открытого репозитория используем прямой URL к APK
+                            String apkDownloadUrl = APK_BASE_URL;
                             long fileSize = getFileSize(apkDownloadUrl);
 
                             UpdateInfo updateInfo = new UpdateInfo(
@@ -166,7 +159,6 @@ public class AppUpdateManager {
             mainHandler.post(() -> callback.onError("Ошибка: " + e.getMessage()));
         }
     }
-
 
     @Keep
     private OutputMetadata downloadMetadata() throws IOException {
@@ -433,4 +425,7 @@ public class AppUpdateManager {
             }
         }
     }
+
+
+
 }

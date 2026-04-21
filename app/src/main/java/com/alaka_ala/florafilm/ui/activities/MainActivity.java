@@ -2,8 +2,13 @@ package com.alaka_ala.florafilm.ui.activities;
 
 import android.content.DialogInterface;
 import android.content.res.Configuration;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -11,10 +16,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.lifecycle.LiveData;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -43,16 +50,35 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 1. Включаем edge-to-edge режим
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_main);
 
+        // 2. Находим корневую вьюху
+        View rootLayout = findViewById(R.id.main);
+
+        // 3. Настраиваем цвет иконок статус-бара (светлые/темные)
+        boolean isSystemInDarkTheme = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+                == Configuration.UI_MODE_NIGHT_YES;
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), rootLayout);
+        controller.setAppearanceLightStatusBars(!isSystemInDarkTheme);
+
+        // 4. Устанавливаем цвет статус-бара (как у AppBarLayout)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            int statusBarColor = getColorFromAttribute(R.attr.MainColorApp);
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(statusBarColor);
+        }
+
+        // 5. Инициализация UI
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         navView = findViewById(R.id.bottom_nav_view);
 
-        View rootLayout = findViewById(R.id.main);
-
+        // 6. Настройка отступов для системных баров
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, 0, systemBars.right, 0);
@@ -60,9 +86,7 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        boolean isSystemInDarkTheme = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-        WindowCompat.getInsetsController(getWindow(), rootLayout).setAppearanceLightStatusBars(!isSystemInDarkTheme);
-
+        // 7. Настройка навигации
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.navigation_home, R.id.navigation_activity, R.id.navigation_menu)
                 .build();
@@ -83,6 +107,14 @@ public class MainActivity extends AppCompatActivity {
             navView.setVisibility(View.VISIBLE);
         }
     }
+
+    // Вспомогательный метод для получения цвета из атрибута
+    private int getColorFromAttribute(int attributeId) {
+        TypedValue typedValue = new TypedValue();
+        getTheme().resolveAttribute(attributeId, typedValue, true);
+        return ContextCompat.getColor(this, typedValue.resourceId);
+    }
+
 
     public void hideBottomNavigationView() {
         if (navView.getVisibility() == View.VISIBLE) {

@@ -1,5 +1,6 @@
 package com.alaka_ala.florafilm.ui.fragments.player;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.Handler;
@@ -34,11 +35,13 @@ import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter;
 import com.alaka_ala.florafilm.ui.fragments.player.strategy.AllohaStrategy;
 import com.alaka_ala.florafilm.ui.fragments.player.strategy.HDVBStrategy;
 import com.alaka_ala.florafilm.ui.fragments.player.strategy.PlayerSourceStrategy;
+import com.alaka_ala.florafilm.utils.settings.AppPreferences;
 import com.alaka_ala.unofficial_kinopoisk_api.db.FilmDetailsDao;
 import com.alaka_ala.unofficial_kinopoisk_api.db.KinopoiskDatabaseV2;
 import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -79,7 +82,7 @@ public class PlayerFragment extends Fragment {
     private int originalOrientation;
     private boolean isScreenRotated = false;
     private boolean shouldRestoreOrientation = true;
-    private boolean isControllerVisible = true;
+    private boolean isControllerVisible = false;
 
     // Режимы соотношения сторон
     private int currentAspectRatio = AspectRatioFrameLayout.RESIZE_MODE_FIT;
@@ -143,7 +146,10 @@ public class PlayerFragment extends Fragment {
         binding.playerView.setUseController(false);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private void initializeGestureListener() {
+        if (getContext() == null) return;
+        if (!AppPreferences.PlayerSettings.GestureListenerSettings.onIsGestureListener(getContext())) return;
         gestureListener = new PlayerGestureListener(
                 requireActivity(),
                 player,
@@ -178,7 +184,8 @@ public class PlayerFragment extends Fragment {
                 customControlsLayout.setVisibility(View.GONE);
             }
             isControllerVisible = false;
-        } else {
+        }
+        else {
             binding.playerView.showController();
             if (customControlsLayout != null) {
                 customControlsLayout.setVisibility(View.VISIBLE);
@@ -198,8 +205,8 @@ public class PlayerFragment extends Fragment {
     }
 
     private void setFullscreen(boolean fullscreen) {
+        Window window = requireActivity().getWindow();
         if (fullscreen) {
-            Window window = requireActivity().getWindow();
             window.setFlags(
                     WindowManager.LayoutParams.FLAG_FULLSCREEN,
                     WindowManager.LayoutParams.FLAG_FULLSCREEN
@@ -211,7 +218,6 @@ public class PlayerFragment extends Fragment {
                     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
             decorView.setSystemUiVisibility(uiOptions);
         } else {
-            Window window = requireActivity().getWindow();
             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
             View decorView = window.getDecorView();
@@ -359,8 +365,8 @@ public class PlayerFragment extends Fragment {
         binding.playerView.setUseController(true);
         binding.playerView.setShowNextButton(true);
         binding.playerView.setShowPreviousButton(true);
-        binding.playerView.setShowFastForwardButton(false);
-        binding.playerView.setShowRewindButton(false);
+        binding.playerView.setShowFastForwardButton(AppPreferences.PlayerSettings.PlayerButtonsControlSettings.isOnActiveButtonFastForward(getContext()));
+        binding.playerView.setShowRewindButton(AppPreferences.PlayerSettings.PlayerButtonsControlSettings.isOnActiveButtonFastRewind(getContext()));
         binding.playerView.setShowShuffleButton(false);
         binding.playerView.setShowSubtitleButton(true);
         binding.playerView.setShowVrButton(false);
@@ -387,6 +393,7 @@ public class PlayerFragment extends Fragment {
     }
 
     private void setupPlayerListeners() {
+        // TODO: Так как работает созранение раз в 5 сек, то тут надо понять, нужно ли созранять SelectedIndex (Просмотренную серию) на новую.
         player.addListener(new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
@@ -436,6 +443,17 @@ public class PlayerFragment extends Fragment {
                         : new HashMap<>();
 
                 positionMap.put(key, position);
+
+                // Balancer[0] > Seasons[1] > Episode[2] > Translations[3] > Quality[4]
+                if (filmDetails.isSerial()) {
+                    // Сохранение для кнопки быстрого продолжения просмотра. Обновляем индекс серии и сохраняем в базу
+                    List<Integer> selectedIndex = launchData.getSelectedIndexPath();
+                    selectedIndex.remove(2);
+                    selectedIndex.add(2, player.getCurrentMediaItemIndex());
+                    filmDetails.setSelectedIndexPath(selectedIndex);
+                }
+                filmDetailsDao.insertAndPreservePositions(filmDetails);
+
                 filmDetailsDao.updatePositions(kinopoiskId, positionMap);
 
                 if (filmDetails != null) {

@@ -5,6 +5,9 @@
     <color name="ColorWhiteColorContainerApp">#EFEFEF</color> <!-- Для CardView. Контейнерный цвет приложения в дневной теме -->
     <color name="ColorDarkMainColorContainerApp">#E6141414</color> <!-- Для CardView. Контейнерный цвет приложения в ночной теме -->
 
+    <color name="ColorDarkBottomColorBackgroundMain">#F5090909</color>
+    <color name="ColorWhiteBottomColorBackgroundMain">#F5F4F4F4</color>
+
 
     <!-- ... другие цвета ... -->
     <color name="chip_background_color">#E0E0E0</color> <!-- Светло-серый фон -->

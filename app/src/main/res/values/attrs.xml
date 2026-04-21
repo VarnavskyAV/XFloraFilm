@@ -2,6 +2,7 @@
 <resources>
     <attr name="MainColorApp" format="color"/>  <!-- Основной цвет приложения -->
     <attr name="MainColorContainerApp" format="color"/>  <!-- для CardView. Контейнерный цвет приложения -->
+    <attr name="AttrBottomColorBackgroundMain" format="color"/>
 
     <attr name="MyGradientColor" format="color"/>
     <attr name="IconTintToolbar" format="color"/>

@@ -54,6 +54,10 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
 
     private static final long SCROLL_SEEK_TIMEOUT = 800;
 
+    // Зона взаимодействия (в пикселях от краев экрана)
+    private static final int EDGE_ZONE_DP = 48; // 48dp отступ от краев
+    private int edgeZonePx;
+
     public PlayerGestureListener(
             Activity activity,
             ExoPlayer player,
@@ -74,6 +78,10 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
         this.speed2xText = speed2xText;
 
         this.audioManager = (AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
+
+        // Рассчитываем зону отступа в пикселях
+        float density = activity.getResources().getDisplayMetrics().density;
+        edgeZonePx = (int) (EDGE_ZONE_DP * density);
     }
 
     public void setOnSingleTapListener(OnSingleTapListener listener) {
@@ -84,7 +92,28 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
     public boolean onDown(MotionEvent e) {
         currentAction = GestureAction.NONE;
 
-        initialBrightness = activity.getWindow().getAttributes().screenBrightness;
+        // Проверяем, не находится ли жест в приграничной зоне
+        if (isInEdgeZone(e)) {
+            return false; // Пропускаем жест для системных действий
+        }
+
+        // Получаем текущую яркость (если не установлена, берем системную)
+        Window window = activity.getWindow();
+        WindowManager.LayoutParams lp = window.getAttributes();
+        if (lp.screenBrightness == WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE) {
+            // Если яркость не переопределена, получаем системную яркость
+            try {
+                int systemBrightness = android.provider.Settings.System.getInt(
+                        activity.getContentResolver(),
+                        android.provider.Settings.System.SCREEN_BRIGHTNESS
+                );
+                initialBrightness = systemBrightness / 255f;
+            } catch (android.provider.Settings.SettingNotFoundException e1) {
+                initialBrightness = 0.5f; // Значение по умолчанию
+            }
+        } else {
+            initialBrightness = lp.screenBrightness;
+        }
 
         if (audioManager != null) {
             initialVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
@@ -98,6 +127,9 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
     public boolean onSingleTapConfirmed(MotionEvent e) {
         if (currentAction != GestureAction.NONE) return false;
 
+        // Игнорируем тапы в приграничной зоне
+        if (isInEdgeZone(e)) return false;
+
         if (onSingleTapListener != null) {
             onSingleTapListener.onSingleTap();
         }
@@ -108,6 +140,9 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
     @Override
     public boolean onDoubleTap(MotionEvent e) {
         if (currentAction != GestureAction.NONE) return true;
+
+        // Игнорируем двойные тапы в приграничной зоне
+        if (isInEdgeZone(e)) return false;
 
         seekHandler.removeCallbacks(seekRunnable);
 
@@ -126,12 +161,15 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
 
         seekHandler.postDelayed(seekRunnable, 800);
 
-        return true; // 💥 съели double tap
+        return true;
     }
 
     @Override
     public void onLongPress(MotionEvent e) {
         if (currentAction != GestureAction.NONE) return;
+
+        // Игнорируем долгое нажатие в приграничной зоне
+        if (isInEdgeZone(e)) return;
 
         player.setPlaybackSpeed(2f);
         if (speed2xText != null) speed2xText.setVisibility(View.VISIBLE);
@@ -139,6 +177,8 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
 
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        // Проверяем стартовую позицию жеста
+        if (isInEdgeZone(e1)) return false;
 
         if (currentAction == GestureAction.NONE) {
             if (Math.abs(distanceX) > Math.abs(distanceY)) {
@@ -148,9 +188,12 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
                 if (e1.getX() < playerView.getWidth() / 2) {
                     currentAction = GestureAction.BRIGHTNESS;
                     showProgress();
+                    updateProgress((int) (initialBrightness * 100));
                 } else {
                     currentAction = GestureAction.VOLUME;
                     showProgress();
+                    int max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    updateProgress((int) ((initialVolume / (float) max) * 100));
                 }
             }
         }
@@ -274,5 +317,21 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
 
     public void setPlayer(ExoPlayer player) {
         this.player = player;
+    }
+
+    // Проверка, находится ли жест в приграничной зоне
+    private boolean isInEdgeZone(MotionEvent e) {
+        if (playerView == null) return false;
+
+        float x = e.getX();
+        float y = e.getY();
+        int width = playerView.getWidth();
+        int height = playerView.getHeight();
+
+        // Проверяем верхнюю, нижнюю, левую и правую границы
+        return y < edgeZonePx ||                    // Верхний край
+                y > height - edgeZonePx ||           // Нижний край
+                x < edgeZonePx ||                    // Левый край
+                x > width - edgeZonePx;              // Правый край
     }
 }

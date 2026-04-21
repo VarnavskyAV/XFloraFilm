@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,6 +23,7 @@ import com.alaka_ala.florafilm.utils.appUpdate.AppUpdateManager;
 import com.alaka_ala.florafilm.utils.appUpdate.models.UpdateInfo;
 import com.alaka_ala.florafilm.utils.settings.AppPreferences;
 import com.google.android.material.checkbox.MaterialCheckBox;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.io.File;
 
@@ -58,6 +60,37 @@ public class SettingsFragment extends Fragment {
 
         appUpdate(view);
         cdnInit(view);
+        playerSettingsInit(view);
+
+    }
+
+    private void playerSettingsInit(View view) {
+        // Жесты
+        MaterialSwitch switchOnGestureListener = view.findViewById(R.id.switchOnGestureListener);
+        boolean isActivatedGesture = AppPreferences.PlayerSettings.GestureListenerSettings.onIsGestureListener(getContext());
+        switchOnGestureListener.setChecked(isActivatedGesture);
+        switchOnGestureListener.setOnCheckedChangeListener((compoundButton, isActive) -> {
+            if (getContext() == null) return;
+            AppPreferences.PlayerSettings.GestureListenerSettings.setStatGestureListener(getContext(), isActive);
+        });
+
+        // # Кнопки управления плеером
+        // Forward
+        MaterialSwitch switchForward = view.findViewById(R.id.switchForward);
+        boolean isActivatedForward = AppPreferences.PlayerSettings.PlayerButtonsControlSettings.isOnActiveButtonFastForward(getContext());
+        switchForward.setChecked(isActivatedForward);
+        switchForward.setOnCheckedChangeListener(((compoundButton, b) -> {
+            AppPreferences.PlayerSettings.PlayerButtonsControlSettings.setOnActiveButtonFastForward(getContext(), b);
+        }));
+
+        // Rewind
+        MaterialSwitch switchRewind = view.findViewById(R.id.switchRewind);
+        boolean isActivatedRewind = AppPreferences.PlayerSettings.PlayerButtonsControlSettings.isOnActiveButtonFastRewind(getContext());
+        switchRewind.setChecked(isActivatedRewind);
+        switchRewind.setOnCheckedChangeListener(((compoundButton, b) -> {
+            AppPreferences.PlayerSettings.PlayerButtonsControlSettings.setOnActiveButtonFastRewind(getContext(), b);
+        }));
+
 
     }
 
@@ -89,7 +122,6 @@ public class SettingsFragment extends Fragment {
 
 
     }
-
 
     private void appUpdate(@NonNull View view) {
         // Находим View из подключенного layout
