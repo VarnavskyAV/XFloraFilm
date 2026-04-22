@@ -71,6 +71,16 @@
             android:contentDescription="Поворот экрана"
             android:src="@drawable/ic_rotate" />
 
+        <ImageButton
+            android:id="@+id/btn_pip"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="16dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Картинка в картинке"
+            android:src="@drawable/pip"
+            android:visibility="visible" />
+
     </LinearLayout>
     <!-- Center Feedback Layout -->
     <LinearLayout

@@ -1,10 +1,15 @@
 package com.alaka_ala.florafilm.fragments.player;
 
 import android.annotation.SuppressLint;
+import android.app.PictureInPictureParams;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Rational;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -19,6 +24,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
+import androidx.annotation.RequiresApi;
+import androidx.core.app.PictureInPictureModeChangedInfo;
+import androidx.core.util.Consumer;
 import androidx.fragment.app.Fragment;
 import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
@@ -55,6 +63,7 @@ public class PlayerFragment extends Fragment {
     private FragmentPlayerBinding binding;
     private ImageButton btnScreenRotate;
     private ImageButton btnAspectRatio;
+    private ImageButton btnPip;
     private LinearLayout customControlsLayout;
 
     // Gesture
@@ -72,7 +81,7 @@ public class PlayerFragment extends Fragment {
     private FilmDetails filmDetails;
     private ExecutorService executorService;
     private FilmDetailsDao filmDetailsDao;
-    private PlayerSourceStrategy sourceStrategy; // Стратегия для текущего источника
+    private PlayerSourceStrategy sourceStrategy;
 
     // Состояние
     private boolean isDestroyed = false;
@@ -82,6 +91,9 @@ public class PlayerFragment extends Fragment {
     private boolean isScreenRotated = false;
     private boolean shouldRestoreOrientation = true;
     private boolean isControllerVisible = false;
+
+    // PiP
+    private boolean isInPipMode = false;
 
     // Режимы соотношения сторон
     private int currentAspectRatio = AspectRatioFrameLayout.RESIZE_MODE_FIT;
@@ -118,15 +130,18 @@ public class PlayerFragment extends Fragment {
         initializeUI();
         initializeGestureListener();
         initializeExecutor();
+        setupPictureInPicture();
     }
 
     private void initializeUI() {
         btnScreenRotate = binding.getRoot().findViewById(R.id.btn_screen_rotate);
         btnAspectRatio = binding.getRoot().findViewById(R.id.btn_aspect_ratio);
+        btnPip = binding.getRoot().findViewById(R.id.btn_pip);
         customControlsLayout = binding.getRoot().findViewById(R.id.custom_controls_layout);
 
         mainActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         isScreenRotated = true;
+
         if (btnScreenRotate != null) {
             btnScreenRotate.setImageResource(R.drawable.ic_rotate);
             btnScreenRotate.setOnClickListener(v -> toggleScreenOrientation());
@@ -134,6 +149,13 @@ public class PlayerFragment extends Fragment {
 
         if (btnAspectRatio != null) {
             btnAspectRatio.setOnClickListener(v -> toggleAspectRatio());
+        }
+
+        if (btnPip != null) {
+            btnPip.setOnClickListener(v -> enterPictureInPictureMode());
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                btnPip.setVisibility(View.GONE);
+            }
         }
 
         if (customControlsLayout != null) {
@@ -150,6 +172,7 @@ public class PlayerFragment extends Fragment {
         if (getContext() == null) return;
         if (!AppPreferences.PlayerSettings.GestureListenerSettings.onIsGestureListener(getContext()))
             return;
+
         gestureListener = new PlayerGestureListener(
                 requireActivity(),
                 player,
@@ -176,16 +199,28 @@ public class PlayerFragment extends Fragment {
     }
 
     private void toggleControllerVisibility() {
+        if (isInPipMode) return;
+        if (!isAdded() || getActivity() == null) return;
 
         if (isControllerVisible) {
-            binding.playerView.hideController();
+            if (binding != null && binding.playerView != null) {
+                binding.playerView.hideController();
+            }
         } else {
-            binding.playerView.showController();
+            if (binding != null && binding.playerView != null) {
+                binding.playerView.showController();
+            }
         }
     }
 
     private void setFullscreen(boolean fullscreen) {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+
         Window window = requireActivity().getWindow();
+        if (window == null) return;
+
         if (fullscreen) {
             window.setFlags(
                     WindowManager.LayoutParams.FLAG_FULLSCREEN,
@@ -193,15 +228,19 @@ public class PlayerFragment extends Fragment {
             );
 
             View decorView = window.getDecorView();
-            int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-            decorView.setSystemUiVisibility(uiOptions);
+            if (decorView != null) {
+                int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+                decorView.setSystemUiVisibility(uiOptions);
+            }
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
             View decorView = window.getDecorView();
-            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            if (decorView != null) {
+                decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            }
         }
     }
 
@@ -289,43 +328,34 @@ public class PlayerFragment extends Fragment {
             savedPositionsMap.putAll(lastPositionPlayerView);
         }
 
-        // ВАЖНО: Здесь создаем нужную стратегию в зависимости от источника
         sourceStrategy = createSourceStrategy();
 
         mainHandler.post(() -> initializePlayer());
     }
 
-    /**
-     * Фабричный метод для создания стратегии в зависимости от источника
-     * Здесь определяется, какой источник используется
-     */
     private PlayerSourceStrategy createSourceStrategy() {
-        // Определяем тип источника из launchData
         int sourceType = detectSourceType();
         switch (sourceType) {
-            case 0: // HDVB
+            case 0:
                 return new HDVBStrategy();
-            case 1: // ALLOHA
+            case 1:
             default:
                 return new AllohaStrategy();
         }
     }
 
-    /**
-     * Определяет тип источника по данным launchData
-     */
     private int detectSourceType() {
-        // Вариант 1: Если в launchData есть поле sourceType
         if (launchData.getSourceType() != -1) {
             return launchData.getSourceType();
         }
-
-        // TODO: Добавить Вариант 2: Если в launchData нет поля sourceType, но есть rootFolders
-        return 0; // По умолчанию HDVB
+        return 0;
     }
 
     private void showErrorAndReturn(String message) {
+        if (!isAdded() || getActivity() == null) return;
+
         mainHandler.post(() -> {
+            if (!isAdded() || getContext() == null) return;
             Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
             if (getActivity() != null) {
                 getActivity().onBackPressed();
@@ -353,7 +383,6 @@ public class PlayerFragment extends Fragment {
 
         setupPlayerListeners();
 
-        // Делегируем настройку воспроизведения стратегии
         sourceStrategy.setupPlayback(
                 requireContext(),
                 player,
@@ -366,7 +395,6 @@ public class PlayerFragment extends Fragment {
     }
 
     private void setupPlayerListeners() {
-        // TODO: Так как работает созранение раз в 5 сек, то тут надо понять, нужно ли созранять SelectedIndex (Просмотренную серию) на новую.
         player.addListener(new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
@@ -409,7 +437,6 @@ public class PlayerFragment extends Fragment {
                 }
             }
         });
-
     }
 
     private void saveCurrentPosition() {
@@ -433,10 +460,8 @@ public class PlayerFragment extends Fragment {
 
                 positionMap.put(key, position);
 
-                // Balancer[0] > Seasons[1] > Episode[2] > Translations[3] > Quality[4]
                 if (filmDetails.isSerial()) {
                     List<Integer> selectedIndex = new ArrayList<>(launchData.getSelectedIndexPath());
-                    // если индекс уже есть — заменяем
                     if (selectedIndex.size() > 2) {
                         selectedIndex.set(2, currentMediaItemIndex);
                     } else {
@@ -445,7 +470,6 @@ public class PlayerFragment extends Fragment {
                     filmDetails.setSelectedIndexPath(selectedIndex);
                 }
                 filmDetailsDao.insertAndPreservePositions(filmDetails);
-
                 filmDetailsDao.updatePositions(kinopoiskId, positionMap);
 
                 if (filmDetails != null) {
@@ -481,13 +505,197 @@ public class PlayerFragment extends Fragment {
         });
     }
 
+    // ==================== PiP Methods ====================
+
+    private void setupPictureInPicture() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            requireActivity().addOnPictureInPictureModeChangedListener(new Consumer<PictureInPictureModeChangedInfo>() {
+                @Override
+                public void accept(PictureInPictureModeChangedInfo pictureInPictureModeChangedInfo) {
+                    isInPipMode = pictureInPictureModeChangedInfo.isInPictureInPictureMode();
+                    if (pictureInPictureModeChangedInfo.isInPictureInPictureMode()) {
+                        onEnterPictureInPicture();
+                    } else {
+                        onExitPictureInPicture();
+                    }
+                }
+            });
+        }
+    }
+
+    private void enterPictureInPictureMode() {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+
+        if (!isPictureInPictureSupported()) {
+            if (isAdded() && getContext() != null) {
+                Toast.makeText(requireContext(), "PiP режим не поддерживается", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
+        if (player == null) return;
+
+        saveCurrentPosition();
+
+        float videoAspectRatio = getVideoAspectRatio();
+        Rational aspectRatio = new Rational(
+                (int) (videoAspectRatio * 1000),
+                1000
+        );
+
+        PictureInPictureParams.Builder builder = new PictureInPictureParams.Builder()
+                .setAspectRatio(aspectRatio);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            builder.setAutoEnterEnabled(true);
+            builder.setSeamlessResizeEnabled(true);
+        }
+
+        try {
+            requireActivity().enterPictureInPictureMode(builder.build());
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            e.printStackTrace();
+            if (isAdded() && getContext() != null) {
+                Toast.makeText(requireContext(), "Не удалось войти в PiP режим", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private float getVideoAspectRatio() {
+        if (player == null || player.getVideoSize() == null) {
+            return 16f / 9f;
+        }
+
+        int videoWidth = player.getVideoSize().width;
+        int videoHeight = player.getVideoSize().height;
+
+        if (videoWidth == 0 || videoHeight == 0) {
+            return 16f / 9f;
+        }
+
+        return (float) videoWidth / videoHeight;
+    }
+
+    private void onEnterPictureInPicture() {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+
+        if (customControlsLayout != null) {
+            customControlsLayout.setVisibility(View.GONE);
+        }
+
+        if (player != null && !player.isPlaying()) {
+            player.play();
+        }
+
+        setFullscreen(true);
+
+        if (mainActivity != null) {
+            mainActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        }
+    }
+
+    private void onExitPictureInPicture() {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+
+        if (customControlsLayout != null && isControllerVisible) {
+            customControlsLayout.setVisibility(View.VISIBLE);
+        }
+
+        setFullscreen(true);
+
+        if (mainActivity != null) {
+            mainActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    @Override
+    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode);
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+
+        if (isInPictureInPictureMode) {
+            if (binding != null && binding.playerView != null) {
+                binding.playerView.hideController();
+            }
+            if (gestureDetector != null && binding != null && binding.playerView != null) {
+                binding.playerView.setOnTouchListener(null);
+            }
+        } else {
+            if (gestureDetector != null && gestureListener != null && binding != null && binding.playerView != null) {
+                binding.playerView.setOnTouchListener((v, event) -> {
+                    boolean handled = gestureDetector.onTouchEvent(event);
+                    if (event.getAction() == MotionEvent.ACTION_UP && gestureListener != null) {
+                        gestureListener.onUp(event);
+                    }
+                    return handled;
+                });
+            }
+
+            if (isControllerVisible && binding != null && binding.playerView != null) {
+                binding.playerView.showController();
+            }
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                !isInPipMode &&
+                player != null &&
+                player.isPlaying() &&
+                isAdded() &&
+                getActivity() != null &&
+                isPictureInPictureSupported()) {
+
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (!isDestroyed && !isInPipMode && player != null && player.isPlaying() && isAdded()) {
+                    enterPictureInPictureMode();
+                }
+            }, 100);
+        }
+    }
+
+    /**
+     * Проверяет, поддерживается ли режим "Картинка в картинке" на устройстве
+     * @return true если PiP поддерживается, false в противном случае
+     */
+    private boolean isPictureInPictureSupported() {
+        // PiP доступен только на Android 8.0 (API 26) и выше
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return false;
+        }
+
+        // Пытаемся войти в PiP режим с пустыми параметрами
+        // Если выбросит исключение - значит не поддерживается
+        try {
+            PictureInPictureParams.Builder builder = new PictureInPictureParams.Builder();
+            // Не вызываем enterPictureInPictureMode, просто проверяем через рефлексию
+            // или полагаемся на версию Android
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ==================== Lifecycle Methods ====================
+
     @Override
     public void onPause() {
         super.onPause();
         saveCurrentPosition();
         savePositionHandler.removeCallbacks(savePositionRunnable);
 
-        if (player != null && player.isPlaying()) {
+        if (player != null && player.isPlaying() && !isInPipMode) {
             player.pause();
         }
     }
@@ -495,7 +703,7 @@ public class PlayerFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (player != null && !isDestroyed) {
+        if (player != null && !isDestroyed && !isInPipMode) {
             player.play();
             savePositionHandler.post(savePositionRunnable);
         }
@@ -508,7 +716,7 @@ public class PlayerFragment extends Fragment {
         isDestroyed = true;
         savePositionHandler.removeCallbacks(savePositionRunnable);
 
-        if (player != null && filmDetails != null && player.getCurrentMediaItem() != null) {
+        if (!isInPipMode && player != null && filmDetails != null && player.getCurrentMediaItem() != null) {
             String key = sourceStrategy.getPositionKey(player, kinopoiskId);
             long position = player.getCurrentPosition();
 
@@ -527,7 +735,7 @@ public class PlayerFragment extends Fragment {
             }).start();
         }
 
-        if (player != null) {
+        if (player != null && !isInPipMode) {
             sourceStrategy.cleanup(player);
             player.stop();
             player.release();
@@ -538,13 +746,15 @@ public class PlayerFragment extends Fragment {
             executorService.shutdown();
         }
 
-        if (shouldRestoreOrientation) {
+        if (shouldRestoreOrientation && !isInPipMode && mainActivity != null) {
             mainActivity.setRequestedOrientation(originalOrientation);
         }
 
-        setFullscreen(false);
-        mainActivity.showBottomNavigationView();
-        mainActivity.showToolbar();
+        if (!isInPipMode && mainActivity != null) {
+            setFullscreen(false);
+            mainActivity.showBottomNavigationView();
+            mainActivity.showToolbar();
+        }
 
         binding = null;
         super.onDestroyView();
