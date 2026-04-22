@@ -26,6 +26,7 @@ import com.alaka_ala.unofficial_kinopoisk_api.api.KinopoiskApiClientV2;
 import com.alaka_ala.unofficial_kinopoisk_api.db.*;
 import com.alaka_ala.unofficial_kinopoisk_api.models.*;
 import com.bumptech.glide.Glide;
+import com.google.android.material.chip.Chip;
 
 import java.util.List;
 import java.util.concurrent.*;
@@ -50,7 +51,7 @@ public class FilmDetailsFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentFilmDetailsBinding.inflate(inflater, container, false);
-
+        setHasOptionsMenu(true);
         kinopoiskId = requireArguments().getInt("kinopoiskId");
 
         api = KinopoiskApiClientV2.getInstance();
@@ -69,6 +70,45 @@ public class FilmDetailsFragment extends Fragment {
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).hideBottomNavigationView();
         }
+    }
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        menu.clear();
+        if (filmDetails != null) {
+            if (filmDetails.isBookmark()) {
+                menu.add("Удалить из избранного").setIcon(R.drawable.bookmark_added).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            } else {
+                menu.add("Добавить в избранное").setIcon(R.drawable.bookmark_add).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            }
+            if (filmDetails.isObserveUpdateVoice()) {
+                menu.add("Не уведомлять о новых озвучках").setIcon(R.drawable.voice).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            } else {
+                menu.add("Уведомить о новых озвучках").setIcon(R.drawable.voice2).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            }
+        }
+    }
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        String title = item.getTitle().toString();
+        switch (title) {
+            case "Добавить в избранное":
+                filmDetails.setIsBookmark(true);
+                break;
+            case "Удалить из избранного":
+                filmDetails.setIsBookmark(false);
+                break;
+            case "Уведомить о новых озвучках":
+                filmDetails.setObserveUpdateVoice(true);
+                break;
+            case "Не уведомлять о новых озвучках":
+                filmDetails.setObserveUpdateVoice(false);
+                break;
+        }
+        executor.execute(() -> dao.insertAndPreservePositions(filmDetails));
+        getActivity().invalidateOptionsMenu(); // Перерисовываем меню
+        return super.onOptionsItemSelected(item);
     }
 
     // ===================== RESUME LOGIC =====================
@@ -287,6 +327,44 @@ public class FilmDetailsFragment extends Fragment {
 
         binding.filmDetailsTitle.setText(film.getBestName());
         binding.filmDetailsDescription.setText(film.getDescription());
+
+        binding.chipsGroup.removeAllViews();
+        if (film.getRatingKinopoisk() != null) {
+            addChip("Кинопоиск: " + film.getRatingKinopoisk(), "ratingKinopoisk", String.valueOf(film.getRatingKinopoisk()));
+        }
+        if (film.getRatingImdb() != null) {
+            addChip("IMDb: " + film.getRatingImdb(), null, null);
+        }
+        if (film.getYear() != null) {
+            addChip("Год: " + film.getYear(), "year", film.getYear());
+        }
+        if (film.getGenres() != null) {
+            for (Genre genre : film.getGenres()) {
+                addChip(genre.getName(), "genre", genre.getName());
+            }
+        }
+        if (film.getCountries() != null) {
+            for (Country country : film.getCountries()) {
+                addChip(country.getName(), "country", country.getName());
+            }
+        }
+
+    }
+
+    private void addChip(String text, String type, String data) {
+        Chip chip = new Chip(getContext());
+        chip.setText(text);
+        if (type != null && data != null) {
+            chip.setOnClickListener(v -> {
+                Bundle bundle = new Bundle();
+                bundle.putString("type", type);
+                bundle.putString("data", data);
+                Navigation.findNavController(binding.getRoot()).navigate(R.id.action_filmDetailsFragment_to_filtersListFragment, bundle);
+            });
+        } else {
+            chip.setOnClickListener(v -> Toast.makeText(getContext(), "Фильтр недоступен", Toast.LENGTH_SHORT).show());
+        }
+        binding.chipsGroup.addView(chip);
     }
 
     // ===================== DESTROY =====================

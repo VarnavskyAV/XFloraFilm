@@ -18,6 +18,9 @@ public class App extends Application {
     @Override
     public void onTerminate() {
         super.onTerminate();
-        KinopoiskApiClientV2.getInstance().close();
+
+           KinopoiskApiClientV2.getInstance().close();
+
+
     }
 }
