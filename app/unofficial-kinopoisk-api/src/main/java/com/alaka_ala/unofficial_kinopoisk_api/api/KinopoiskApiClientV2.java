@@ -50,9 +50,45 @@ public class KinopoiskApiClientV2 {
     private final KinopoiskDatabaseV2 database;
     private final Executor executor = Executors.newSingleThreadExecutor();
 
+    /*private static String getInternalApiKey() {
+        String key = "0449601bf902-7adb-7f64-46f9-a6faa029";
+        return new StringBuilder(key).reverse().toString();
+    }*/
     private static String getInternalApiKey() {
-        String reversedKey = "0449601bf902-7adb-7f64-46f9-a6faa029";
-        return new StringBuilder(reversedKey).reverse().toString();
+        // Фальшивые данные (отвлекающие манипуляции)
+        String fPart1 = "zzz";
+        int fCounter = 42;
+
+        // Алфавит для преобразования (цифры + буквы)
+        char[] alphabet = "0123456789abcdef".toCharArray();
+
+        // Индексы в алфавите для настоящего токена (920aaf6a-9f64-46f7-bda7-209fb1069440)
+        // Токен разбит на 5 частей, каждая часть закодирована индексами
+        int[][] encodedParts = {
+                {9,2,0,10,10,15,6,10},           // 920aaf6a
+                {9,15,6,4},                       // 9f64
+                {4,6,15,7},                       // 46f7
+                {11,13,10,7},                     // bda7
+                {2,0,9,15,11,1,0,6,9,4,4,0}      // 209fb1069440
+        };
+
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < encodedParts.length; i++) {
+            for (int idx : encodedParts[i]) {
+                result.append(alphabet[idx]);
+            }
+            if (i < encodedParts.length - 1) {
+                result.append('-');
+            }
+        }
+
+        // Фальшивая операция (ничего не меняет, но сбивает с толку)
+        String fResult = result.toString();
+        if (fCounter == 42) {
+            fResult = fResult.replace(fPart1, ""); // не влияет
+        }
+
+        return fResult;
     }
 
     private KinopoiskApiClientV2(String apiKey, OkHttpClient httpClient, Context context) {
