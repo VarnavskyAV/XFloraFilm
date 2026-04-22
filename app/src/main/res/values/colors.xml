@@ -2,8 +2,10 @@
 <resources>
     <color name="black">#FF000000</color> <!-- Основной цвет приложения в ночной теме -->
     <color name="white">#F1FFFFFF</color> <!-- Основной цвет приложения в дневной теме -->
-    <color name="ColorWhiteColorContainerApp">#EFEFEF</color> <!-- Для CardView. Контейнерный цвет приложения в дневной теме -->
-    <color name="ColorDarkMainColorContainerApp">#E6141414</color> <!-- Для CardView. Контейнерный цвет приложения в ночной теме -->
+    <color name="ColorWhiteColorContainerApp">#EFEFEF
+    </color> <!-- Для CardView. Контейнерный цвет приложения в дневной теме -->
+    <color name="ColorDarkMainColorContainerApp">#E6141414
+    </color> <!-- Для CardView. Контейнерный цвет приложения в ночной теме -->
 
     <color name="ColorDarkBottomColorBackgroundMain">#F5090909</color>
     <color name="ColorWhiteBottomColorBackgroundMain">#F5F4F4F4</color>
@@ -28,8 +30,8 @@
     <color name="ButtonThemeLight">#70ADB8</color>
     <color name="ButtonThemeDark">#93B8BF</color>
 
-
-
+    <color name="background_gradient_start">#000000</color>
+    <color name="background_gradient_end">#DDDDDD</color>
 
 
 </resources>

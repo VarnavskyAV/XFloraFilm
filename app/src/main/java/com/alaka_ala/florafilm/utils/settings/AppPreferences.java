@@ -4,7 +4,8 @@ import static android.content.Context.MODE_PRIVATE;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.view.View;
+
+import com.alaka_ala.florafilm.fragments.settings.SettingsFragment;
 
 public class AppPreferences {
     private static final String preferencesName = "AppPreferences";
@@ -20,21 +21,21 @@ public class AppPreferences {
 
 
             /**
-             * Получает пользовательский параметр на включение балансера HDVB <br> используется тут -> {@link com.alaka_ala.florafilm.ui.fragments.settings.SettingsFragment}
+             * Получает пользовательский параметр на включение балансера HDVB <br> используется тут -> {@link SettingsFragment}
              */
             public static boolean isHDVBActive(Context context) {
                 return getSharedPreferences(context).getBoolean(key_cdn_param, cdn_active_default);
             }
 
             /**
-             * Отключает балансер HDVB <br> используется тут -> {@link com.alaka_ala.florafilm.ui.fragments.settings.SettingsFragment}
+             * Отключает балансер HDVB <br> используется тут -> {@link SettingsFragment}
              */
             public static void disableHDVB(Context context) {
                 getSharedPreferences(context).edit().putBoolean(key_cdn_param, true).apply();
             }
 
             /**
-             * Включает балансер HDVB <br> используется тут -> {@link com.alaka_ala.florafilm.ui.fragments.settings.SettingsFragment}
+             * Включает балансер HDVB <br> используется тут -> {@link SettingsFragment}
              */
             public static void enableHDVB(Context context) {
                 getSharedPreferences(context).edit().putBoolean(key_cdn_param, true).apply();
@@ -47,21 +48,21 @@ public class AppPreferences {
 
             /**
              * Получает пользовательский параметр на включение балансера ALLOHA
-             * <br> используется тут -> {@link com.alaka_ala.florafilm.ui.fragments.settings.SettingsFragment}
+             * <br> используется тут -> {@link SettingsFragment}
              */
             public static boolean isAllohaActive(Context context) {
                 return getSharedPreferences(context).getBoolean(key_cdn_param, cdn_active_default);
             }
 
             /**
-             * Отключает балансер ALLOHA <br> используется тут -> {@link com.alaka_ala.florafilm.ui.fragments.settings.SettingsFragment}
+             * Отключает балансер ALLOHA <br> используется тут -> {@link SettingsFragment}
              */
             public static void disableAlloha(Context context) {
                 getSharedPreferences(context).edit().putBoolean(key_cdn_param, false).apply();
             }
 
             /**
-             * Включает балансер ALLOHA <br> используется тут -> {@link com.alaka_ala.florafilm.ui.fragments.settings.SettingsFragment}
+             * Включает балансер ALLOHA <br> используется тут -> {@link SettingsFragment}
              */
             public static void enableAlloha(Context context) {
                 getSharedPreferences(context).edit().putBoolean(key_cdn_param, true).apply();

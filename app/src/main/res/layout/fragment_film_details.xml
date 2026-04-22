@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.fragments.filmDetails.FilmDetailsFragment">
+    tools:context=".fragments.filmDetails.FilmDetailsFragment">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar_layout"
@@ -19,7 +19,7 @@
             android:layout_height="match_parent"
             app:expandedTitleMarginEnd="64dp"
             app:expandedTitleMarginStart="48dp"
-            app:layout_scrollFlags="snapMargins|scroll|enterAlwaysCollapsed|exitUntilCollapsed|snap">
+            app:layout_scrollFlags="snapMargins|scroll">
 
             <ImageView
                 android:id="@+id/film_details_poster"
@@ -88,10 +88,10 @@
                         android:id="@+id/buttonResumeWatch"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:backgroundTint="#C4CA52"
+                        android:backgroundTint="#0AFFFFFF"
                         android:enabled="true"
                         android:text="Продолжить"
-                        android:textColor="#686666" />
+                        android:textColor="#FFFFFF" />
 
                     <TextView
                         android:id="@+id/textViewResumeWatch"

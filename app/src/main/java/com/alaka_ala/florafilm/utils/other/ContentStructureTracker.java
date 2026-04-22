@@ -6,8 +6,8 @@ import android.preference.PreferenceManager;
 
 import androidx.annotation.Keep;
 
-import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter;
-import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.Folder;
+import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter;
+import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter.Folder;
 import com.google.gson.Gson;
 
 import java.nio.charset.StandardCharsets;
@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**Класс предназначен для отслеживания изменений в структуре контента.
- * Отслеживает структуру AdapterData - {@link com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter.AdapterData}
+ * Отслеживает структуру AdapterData - {@link SelectorVoiceAdapter.AdapterData}
  * Работает для отслеживания изменений в фильмах которые пользователь отметил как "Уведомить о новых озвучках/Сериях/Сезонах"*/
 @Keep
 public class ContentStructureTracker {

@@ -2,7 +2,7 @@ package com.alaka_ala.florafilm.utils.balancers.alloha;
 
 import static com.alaka_ala.florafilm.utils.balancers.Balancer.ALLOHA_ID;
 
-import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter;
+import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter;
 import com.alaka_ala.florafilm.utils.balancers.alloha.models.movie.MovieData;
 import com.alaka_ala.florafilm.utils.balancers.alloha.models.movie.MovieResponse;
 import com.alaka_ala.florafilm.utils.balancers.alloha.models.movie.TranslationIframe;
@@ -24,8 +24,6 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;

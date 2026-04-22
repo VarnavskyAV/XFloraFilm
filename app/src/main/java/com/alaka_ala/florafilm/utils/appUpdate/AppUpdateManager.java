@@ -16,7 +16,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 
 import com.alaka_ala.florafilm.BuildConfig;
-import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.utils.appUpdate.models.Element;
 import com.alaka_ala.florafilm.utils.appUpdate.models.OutputMetadata;
 import com.alaka_ala.florafilm.utils.appUpdate.models.UpdateInfo;

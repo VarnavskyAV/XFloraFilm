@@ -2,7 +2,8 @@ package com.alaka_ala.florafilm.data.media;
 
 import androidx.annotation.Keep;
 
-import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter;
+import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter;
+import com.alaka_ala.florafilm.utils.balancers.Balancer;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -15,7 +16,7 @@ import java.util.stream.Collectors;
  */
 @Keep
 public class PlayerLaunchData implements Serializable {
-    /**Типы ресурсов для разных источников. Доступные можно посмотреть тут - {@link com.alaka_ala.florafilm.utils.balancers.Balancer} */
+    /**Типы ресурсов для разных источников. Доступные можно посмотреть тут - {@link Balancer} */
     public int getSourceType() {
         return sourceType;
     }

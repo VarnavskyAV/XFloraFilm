@@ -4,13 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
     app:defaultNavHost="true"
-    app:startDestination="@id/navigation_menu">
+    app:startDestination="@id/navigation_activity">
 
 
 
     <fragment
         android:id="@+id/navigation_home"
-        android:name="com.alaka_ala.florafilm.ui.fragments.home.HomeFragment"
+        android:name="com.alaka_ala.florafilm.fragments.home.HomeFragment"
         android:label="Главная"
         tools:layout="@layout/fragment_home">
         <action
@@ -38,7 +38,7 @@
 
     <fragment
         android:id="@+id/navigation_activity"
-        android:name="com.alaka_ala.florafilm.ui.fragments.activity.ActivityFragment"
+        android:name="com.alaka_ala.florafilm.fragments.activity.ActivityFragment"
         android:label="Активность"
         tools:layout="@layout/fragment_activity" >
         <action
@@ -55,7 +55,7 @@
 
     <fragment
         android:id="@+id/navigation_menu"
-        android:name="com.alaka_ala.florafilm.ui.fragments.menu.MenuFragment"
+        android:name="com.alaka_ala.florafilm.fragments.menu.MenuFragment"
         android:label="Меню"
         tools:layout="@layout/fragment_menu" >
         <action
@@ -64,7 +64,7 @@
     </fragment>
     <fragment
         android:id="@+id/filmDetailsFragment"
-        android:name="com.alaka_ala.florafilm.ui.fragments.filmDetails.FilmDetailsFragment"
+        android:name="com.alaka_ala.florafilm.fragments.filmDetails.FilmDetailsFragment"
         android:label="О фильме"
         tools:layout="@layout/fragment_film_details">
         <action
@@ -80,7 +80,7 @@
     </fragment>
     <fragment
         android:id="@+id/filtersListFragment"
-        android:name="com.alaka_ala.florafilm.ui.fragments.filters.FiltersListFragment"
+        android:name="com.alaka_ala.florafilm.fragments.filters.FiltersListFragment"
         android:label="Фильтр"
         tools:layout="@layout/fragment_filters_list" >
         <action
@@ -93,7 +93,7 @@
     </fragment>
     <fragment
         android:id="@+id/findFragment"
-        android:name="com.alaka_ala.florafilm.ui.fragments.find.FindFragment"
+        android:name="com.alaka_ala.florafilm.fragments.find.FindFragment"
         android:label="Поиск"
         tools:layout="@layout/fragment_find">
         <action
@@ -102,13 +102,13 @@
     </fragment>
     <fragment
         android:id="@+id/settingsFragment"
-        android:name="com.alaka_ala.florafilm.ui.fragments.settings.SettingsFragment"
+        android:name="com.alaka_ala.florafilm.fragments.settings.SettingsFragment"
         android:label="Настройки"
         tools:layout="@layout/fragment_settings" />
 
     <fragment
         android:id="@+id/playerFragment"
-        android:name="com.alaka_ala.florafilm.ui.fragments.player.PlayerFragment"
+        android:name="com.alaka_ala.florafilm.fragments.player.PlayerFragment"
         android:label="Плеер"
         tools:layout="@layout/fragment_player" >
         <argument

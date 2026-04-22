@@ -12,6 +12,8 @@ navigationFragment = "2.9.6"
 palette = "1.0.0"
 recyclerview = "1.4.0"
 media3 = "1.8.0"
+cardview = "1.0.0"
+glide = "4.11.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -29,6 +31,8 @@ recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version
 media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
 media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 media3-exoplayer-hls = { group = "androidx.media3", name = "media3-exoplayer-hls", version.ref = "media3" }
+cardview = { group = "androidx.cardview", name = "cardview", version.ref = "cardview" }
+glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

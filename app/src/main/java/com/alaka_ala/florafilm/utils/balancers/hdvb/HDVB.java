@@ -6,7 +6,7 @@ import android.os.Looper;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 
-import com.alaka_ala.florafilm.ui.fragments.filmDetails.SelectorVoiceAdapter;
+import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter;
 import com.alaka_ala.florafilm.utils.balancers.Balancer;
 import com.alaka_ala.florafilm.utils.balancers.hdvb.models.EpisodeResponse;
 import com.alaka_ala.florafilm.utils.balancers.hdvb.models.HDVBApiResponse;
