@@ -52,6 +52,16 @@
         tools:visibility="visible">
 
         <!-- Кнопка изменения соотношения сторон -->
+        <TextView
+            android:id="@+id/textViewTitleMovie"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            tools:text="Побег из Шоушенка (2000)" />
+
         <ImageButton
             android:id="@+id/btn_aspect_ratio"
             android:layout_width="24dp"

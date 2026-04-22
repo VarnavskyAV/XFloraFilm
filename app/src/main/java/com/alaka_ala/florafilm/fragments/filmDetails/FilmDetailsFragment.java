@@ -76,19 +76,26 @@ public class FilmDetailsFragment extends Fragment {
     public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         menu.clear();
-        if (filmDetails != null) {
-            if (filmDetails.isBookmark()) {
-                menu.add("Удалить из избранного").setIcon(R.drawable.bookmark_added).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            } else {
-                menu.add("Добавить в избранное").setIcon(R.drawable.bookmark_add).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            }
-            if (filmDetails.isObserveUpdateVoice()) {
-                menu.add("Не уведомлять о новых озвучках").setIcon(R.drawable.voice).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            } else {
-                menu.add("Уведомить о новых озвучках").setIcon(R.drawable.voice2).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-            }
+        if (filmDetails == null) {
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                onCreateOptionsMenu(menu, inflater);
+            }, 170);
+            return;
+        }
+
+
+        if (filmDetails.isBookmark()) {
+            menu.add("Удалить из избранного").setIcon(R.drawable.bookmark_added).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        } else {
+            menu.add("Добавить в избранное").setIcon(R.drawable.bookmark_add).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        }
+        if (filmDetails.isObserveUpdateVoice()) {
+            menu.add("Не уведомлять о новых озвучках").setIcon(R.drawable.voice).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        } else {
+            menu.add("Уведомить о новых озвучках").setIcon(R.drawable.voice2).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
     }
+
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         String title = item.getTitle().toString();

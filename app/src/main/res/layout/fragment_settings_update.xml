@@ -20,12 +20,29 @@
         android:layout_marginTop="12dp"
         android:text="Текущая версия: 1.0.0" />
 
-    <Button
-        android:id="@+id/check_for_update_button"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="Проверить обновление" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/check_for_update_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Проверить обновление" />
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:enabled="false"
+            android:text="Changelog" />
+    </LinearLayout>
 
     <ProgressBar
         android:id="@+id/update_progress_bar"

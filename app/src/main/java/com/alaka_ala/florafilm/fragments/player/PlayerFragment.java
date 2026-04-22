@@ -133,6 +133,7 @@ public class PlayerFragment extends Fragment {
         setupPictureInPicture();
     }
 
+    @SuppressLint("SetTextI18n")
     private void initializeUI() {
         btnScreenRotate = binding.getRoot().findViewById(R.id.btn_screen_rotate);
         btnAspectRatio = binding.getRoot().findViewById(R.id.btn_aspect_ratio);
@@ -439,6 +440,7 @@ public class PlayerFragment extends Fragment {
         });
     }
 
+    @SuppressLint("SetTextI18n")
     private void saveCurrentPosition() {
         if (isDestroyed || player == null || filmDetails == null || player.getCurrentMediaItem() == null) {
             return;
@@ -459,18 +461,31 @@ public class PlayerFragment extends Fragment {
                         : new HashMap<>();
 
                 positionMap.put(key, position);
-
+                List<Integer> selectedIndex = new ArrayList<>(launchData.getSelectedIndexPath());
                 if (filmDetails.isSerial()) {
-                    List<Integer> selectedIndex = new ArrayList<>(launchData.getSelectedIndexPath());
                     if (selectedIndex.size() > 2) {
                         selectedIndex.set(2, currentMediaItemIndex);
                     } else {
                         selectedIndex.add(2, currentMediaItemIndex);
                     }
                     filmDetails.setSelectedIndexPath(selectedIndex);
+
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        // Balancer > Seasons > Episode > Translation > quality
+                        if (getContext() == null) return;
+                        binding.textViewTitleMovie.setText(currentDetails.getBestName() + "(" + currentDetails.getYear() + ") | Сезон: " + (selectedIndex.get(1) + 1) + " | Эпизод: " + (selectedIndex.get(2) + 1));
+                    });
+                } else {
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        // Balancer > Translation > quality
+                        if (getContext() == null) return;
+                        binding.textViewTitleMovie.setText(currentDetails.getBestName() + "(" + currentDetails.getYear() + ")");
+                    });
                 }
                 filmDetailsDao.insertAndPreservePositions(filmDetails);
                 filmDetailsDao.updatePositions(kinopoiskId, positionMap);
+
+
 
                 if (filmDetails != null) {
                     filmDetails.setLastPositionPlayerView(positionMap);
