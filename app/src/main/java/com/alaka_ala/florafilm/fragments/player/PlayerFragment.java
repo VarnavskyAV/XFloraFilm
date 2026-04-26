@@ -527,11 +527,25 @@ public class PlayerFragment extends Fragment {
             requireActivity().addOnPictureInPictureModeChangedListener(new Consumer<PictureInPictureModeChangedInfo>() {
                 @Override
                 public void accept(PictureInPictureModeChangedInfo pictureInPictureModeChangedInfo) {
+                    boolean wasInPipMode = isInPipMode;
                     isInPipMode = pictureInPictureModeChangedInfo.isInPictureInPictureMode();
+                    
                     if (pictureInPictureModeChangedInfo.isInPictureInPictureMode()) {
                         onEnterPictureInPicture();
-                    } else {
-                        onExitPictureInPicture();
+                    } else if (wasInPipMode) {
+                        // Пользователь вышел из PIP - сбрасываем флаг, чтобы при уходе из плеера
+                        // восстановился statusBar и другой UI
+                        isInPipMode = false;
+                        
+                        // Восстанавливаем видимость контроллера если он был виден до входа в PIP
+                        if (customControlsLayout != null && isControllerVisible) {
+                            customControlsLayout.setVisibility(View.VISIBLE);
+                        }
+                        
+                        // Восстанавливаем ориентацию ландшафта после выхода из PIP
+                        if (mainActivity != null) {
+                            mainActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                        }
                     }
                 }
             });
@@ -610,22 +624,6 @@ public class PlayerFragment extends Fragment {
 
         if (mainActivity != null) {
             mainActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-        }
-    }
-
-    private void onExitPictureInPicture() {
-        if (!isAdded() || getActivity() == null) {
-            return;
-        }
-
-        if (customControlsLayout != null && isControllerVisible) {
-            customControlsLayout.setVisibility(View.VISIBLE);
-        }
-
-        setFullscreen(true);
-
-        if (mainActivity != null) {
-            mainActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         }
     }
 
@@ -766,9 +764,13 @@ public class PlayerFragment extends Fragment {
         }
 
         if (!isInPipMode && mainActivity != null) {
+            // Восстанавливаем UI только если мы не в PIP режиме и пользователь вышел из плеера
             setFullscreen(false);
             mainActivity.showBottomNavigationView();
             mainActivity.showToolbar();
+        } else if (isInPipMode) {
+            // Если мы всё ещё в PIP режиме, восстанавливаем fullscreen для корректной работы
+            setFullscreen(true);
         }
 
         binding = null;
