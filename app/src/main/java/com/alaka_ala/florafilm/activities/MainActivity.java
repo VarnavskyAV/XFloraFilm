@@ -22,6 +22,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
@@ -95,7 +96,43 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(navView, navController);
 
+        // Отслеживаем навигацию для восстановления UI при выходе из плеера
+        navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+            if (destination.getId() != R.id.playerFragment) {
+                // Мы ушли из плеера - восстанавливаем statusBar и UI
+                restoreSystemUI();
+            }
+        });
+
         filmDetailsDao = KinopoiskDatabaseV2.getDatabase(this).filmDetailsDao();
+    }
+
+    /**
+     * Восстанавливает системный UI (statusBar, navigationBar) после выхода из полноэкранного режима
+     */
+    public void restoreSystemUI() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            
+            int statusBarColor = getColorFromAttribute(R.attr.MainColorApp);
+            window.setStatusBarColor(statusBarColor);
+            
+            View decorView = window.getDecorView();
+            if (decorView != null) {
+                decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            }
+            
+            // Восстанавливаем контроллер для управления appearance статус-бара
+            View rootLayout = findViewById(R.id.main);
+            if (rootLayout != null) {
+                WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), rootLayout);
+                boolean isSystemInDarkTheme = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+                        == Configuration.UI_MODE_NIGHT_YES;
+                controller.setAppearanceLightStatusBars(!isSystemInDarkTheme);
+            }
+        }
     }
 
     public void showBottomNavigationView() {

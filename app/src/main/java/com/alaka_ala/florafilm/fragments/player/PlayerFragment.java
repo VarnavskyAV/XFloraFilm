@@ -721,13 +721,22 @@ public class PlayerFragment extends Fragment {
             savePositionHandler.post(savePositionRunnable);
         }
 
-        setFullscreen(true);
+        // Оставляем fullscreen только если мы всё ещё в плеере (не вышли из него)
+        // Проверка: если binding существует и мы видим этот фрагмент, значит мы ещё в плеере
+        if (binding != null && isAdded()) {
+            setFullscreen(true);
+        }
     }
 
     @Override
     public void onDestroyView() {
         isDestroyed = true;
         savePositionHandler.removeCallbacks(savePositionRunnable);
+
+        // Сразу восстанавливаем системный UI при выходе из фрагмента (не в PIP)
+        if (!isInPipMode && mainActivity != null) {
+            mainActivity.restoreSystemUI();
+        }
 
         if (!isInPipMode && player != null && filmDetails != null && player.getCurrentMediaItem() != null) {
             String key = sourceStrategy.getPositionKey(player, kinopoiskId);
@@ -768,6 +777,8 @@ public class PlayerFragment extends Fragment {
             setFullscreen(false);
             mainActivity.showBottomNavigationView();
             mainActivity.showToolbar();
+            // Дополнительно вызываем восстановление системного UI на уровне Activity
+            mainActivity.restoreSystemUI();
         } else if (isInPipMode) {
             // Если мы всё ещё в PIP режиме, восстанавливаем fullscreen для корректной работы
             setFullscreen(true);
