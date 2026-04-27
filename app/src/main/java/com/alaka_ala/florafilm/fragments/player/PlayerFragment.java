@@ -733,11 +733,6 @@ public class PlayerFragment extends Fragment {
         isDestroyed = true;
         savePositionHandler.removeCallbacks(savePositionRunnable);
 
-        // Сразу восстанавливаем системный UI при выходе из фрагмента (не в PIP)
-        if (!isInPipMode && mainActivity != null) {
-            mainActivity.restoreSystemUI();
-        }
-
         if (!isInPipMode && player != null && filmDetails != null && player.getCurrentMediaItem() != null) {
             String key = sourceStrategy.getPositionKey(player, kinopoiskId);
             long position = player.getCurrentPosition();
@@ -772,16 +767,13 @@ public class PlayerFragment extends Fragment {
             mainActivity.setRequestedOrientation(originalOrientation);
         }
 
-        if (!isInPipMode && mainActivity != null) {
-            // Восстанавливаем UI только если мы не в PIP режиме и пользователь вышел из плеера
-            setFullscreen(false);
+        // Всегда восстанавливаем UI при уничтожении фрагмента
+        setFullscreen(false);
+        
+        if (mainActivity != null) {
             mainActivity.showBottomNavigationView();
             mainActivity.showToolbar();
-            // Дополнительно вызываем восстановление системного UI на уровне Activity
             mainActivity.restoreSystemUI();
-        } else if (isInPipMode) {
-            // Если мы всё ещё в PIP режиме, восстанавливаем fullscreen для корректной работы
-            setFullscreen(true);
         }
 
         binding = null;
