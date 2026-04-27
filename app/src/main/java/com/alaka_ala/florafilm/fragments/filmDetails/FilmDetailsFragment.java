@@ -201,6 +201,7 @@ public class FilmDetailsFragment extends Fragment {
     }
 
     private void tryShowResumeButton() {
+        if (getContext() == null) return;
         ResumeData data = buildResumeData();
 
         if (data == null) {

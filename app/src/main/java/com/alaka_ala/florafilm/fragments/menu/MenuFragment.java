@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -45,9 +46,7 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         List<MenuItem> menuItems = new ArrayList<>();
         menuItems.add(new MenuItem("Информация",
                 "Приложение находится в разработке!\n\n" +
-                        "Подгоняем приложение под ТВ \uD83D\uDCFA\uD83D\uDE0D \n\n" +
-                        "Убир(в)аем баги ᡕᠵデᡁ᠊╾━\uD83D\uDCA5 \uD83E\uDEB2 \uD83D\uDC1B \n\n" +
-                        "≽^•⩊•^≼ meow", ""));
+                        "≽^•⩊•^≼", "История изменений", "Поддержать!"));
 
         AppUpdateManager.getInstance(getContext()).checkForUpdate(new AppUpdateManager.UpdateCheckCallback() {
             @Override
@@ -93,16 +92,31 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         }
     }
 
+
+    private int countTapSup = 0;
     @Override
     public void onInfoButtonClick(MenuItem menuItem, int buttonIndex) {
+        //Пример логики
+        if (buttonIndex == 1) { // Подробнее
+            // Открыть страницу обновления
+            Navigation.findNavController(getView()).navigate(R.id.action_navigation_menu_to_changelogFragment2);
+        } else if (buttonIndex == 2) { // Позже
+            // Просто закрыть
+            countTapSup++;
+            if (countTapSup == 1) {
+                Toast.makeText(getContext(), "Спасибо, ее то мне и не хватало!", Toast.LENGTH_SHORT).show();
+            } else if (countTapSup == 2) {
+                Toast.makeText(getContext(), "Денег нет, но мы держимся!", Toast.LENGTH_SHORT).show();
+            } else if (countTapSup == 3) {
+                Toast.makeText(getContext(), "И вы не унывайте!", Toast.LENGTH_SHORT).show();
+            } else if (countTapSup == 5) {
+                Toast.makeText(getContext(), "да-да", Toast.LENGTH_SHORT).show();
+            }else if (countTapSup < 19) {
+                Toast.makeText(getContext(), "- " + (countTapSup + 1) + " - раз поддержал. Молоток!", Toast.LENGTH_SHORT).show();
+            } else if (countTapSup == 20) {
+                Toast.makeText(getContext(), "Ну однозначно лайк. Посмотри лучше фильм какой-нибудь! А я ушел!", Toast.LENGTH_SHORT).show();
+            }
+        }
 
-        // Пример логики
-        // if (menuItem.getTitle().equals("Обновление")) {
-        //     if (buttonIndex == 1) { // Подробнее
-        //         // Открыть страницу обновления
-        //     } else if (buttonIndex == 2) { // Позже
-        //         // Просто закрыть
-        //     }
-        // }
     }
 }

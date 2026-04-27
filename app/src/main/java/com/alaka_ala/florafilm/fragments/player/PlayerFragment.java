@@ -215,14 +215,41 @@ public class PlayerFragment extends Fragment {
     }
 
     private void setFullscreen(boolean fullscreen) {
-        if (!isAdded() || getActivity() == null) {
-            return;
-        }
+        if (fullscreen) {
+            // Включаем полный экран
+            requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
+            View decorView = requireActivity().getWindow().getDecorView();
+            decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            );
+        } else {
+            // Выключаем полный экран - СБРАСЫВАЕМ ВСЁ
+            Window window = requireActivity().getWindow();
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+            View decorView = window.getDecorView();
+            // ВОТ ЭТО ВАЖНО - сбрасываем системные флаги
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+
+            // Дополнительно - показываем статус и навигацию принудительно
+            window.getDecorView().setSystemUiVisibility(0);
+        }
+    }
+
+    private void applyFullscreenState(boolean shouldBeFullscreen) {
         Window window = requireActivity().getWindow();
         if (window == null) return;
 
-        if (fullscreen) {
+        // Проверяем текущее реальное состояние флага
+        WindowManager.LayoutParams attrs = window.getAttributes();
+        boolean isCurrentlyFullscreen = (attrs.flags & WindowManager.LayoutParams.FLAG_FULLSCREEN) != 0;
+
+        // Если текущее состояние не соответствует нужному - принудительно устанавливаем
+        if (shouldBeFullscreen && !isCurrentlyFullscreen) {
+            // Полностью перезаписываем флаг, а не добавляем
             window.setFlags(
                     WindowManager.LayoutParams.FLAG_FULLSCREEN,
                     WindowManager.LayoutParams.FLAG_FULLSCREEN
@@ -235,7 +262,8 @@ public class PlayerFragment extends Fragment {
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
                 decorView.setSystemUiVisibility(uiOptions);
             }
-        } else {
+        } else if (!shouldBeFullscreen && isCurrentlyFullscreen) {
+            // Принудительно снимаем флаг (очищаем полностью)
             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
             View decorView = window.getDecorView();
@@ -482,6 +510,7 @@ public class PlayerFragment extends Fragment {
                         binding.textViewTitleMovie.setText(currentDetails.getBestName() + "(" + currentDetails.getYear() + ")");
                     });
                 }
+                filmDetails.setIsStartView(true);
                 filmDetailsDao.insertAndPreservePositions(filmDetails);
                 filmDetailsDao.updatePositions(kinopoiskId, positionMap);
 
@@ -766,11 +795,10 @@ public class PlayerFragment extends Fragment {
         }
 
         if (!isInPipMode && mainActivity != null) {
-            setFullscreen(false);
             mainActivity.showBottomNavigationView();
             mainActivity.showToolbar();
         }
-
+        setFullscreen(false);
         binding = null;
         super.onDestroyView();
     }

@@ -201,6 +201,7 @@ public class AppPreferences {
     }
 
     private static SharedPreferences getSharedPreferences(Context context) {
+        if (context == null) return null;
         return context.getSharedPreferences(preferencesName, MODE_PRIVATE);
     }
 

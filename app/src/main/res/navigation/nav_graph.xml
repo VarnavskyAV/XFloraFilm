@@ -61,6 +61,9 @@
         <action
             android:id="@+id/action_navigation_menu_to_settingsFragment"
             app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_navigation_menu_to_changelogFragment2"
+            app:destination="@id/changelogFragment2" />
     </fragment>
     <fragment
         android:id="@+id/filmDetailsFragment"
@@ -104,7 +107,11 @@
         android:id="@+id/settingsFragment"
         android:name="com.alaka_ala.florafilm.fragments.settings.SettingsFragment"
         android:label="Настройки"
-        tools:layout="@layout/fragment_settings" />
+        tools:layout="@layout/fragment_settings" >
+        <action
+            android:id="@+id/action_settingsFragment_to_changelogFragment2"
+            app:destination="@id/changelogFragment2" />
+    </fragment>
 
     <fragment
         android:id="@+id/playerFragment"
@@ -115,5 +122,10 @@
             android:name="playerLaunchData"
             app:argType="com.alaka_ala.florafilm.data.media.PlayerLaunchData" />
     </fragment>
+    <fragment
+        android:id="@+id/changelogFragment2"
+        android:name="com.alaka_ala.florafilm.fragments.changelog.ChangelogFragment"
+        android:label="Chsngelog"
+        tools:layout="@layout/fragment_changelog" />
 
 </navigation>

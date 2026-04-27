@@ -14,6 +14,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentSettingsBinding;
@@ -30,7 +31,7 @@ public class SettingsFragment extends Fragment {
     private FragmentSettingsBinding binding;
     private AppUpdateManager app2UpdateManager;
 
-    private Button checkForUpdateButton;
+    private Button checkForUpdateButton, buttonChangelog;
     private TextView versionInfoTextView;
     private ProgressBar updateProgressBar;
 
@@ -125,16 +126,26 @@ public class SettingsFragment extends Fragment {
     private void appUpdate(@NonNull View view) {
         // Находим View из подключенного layout
         checkForUpdateButton = view.findViewById(R.id.check_for_update_button);
+        buttonChangelog = view.findViewById(R.id.buttonChangelog);
         versionInfoTextView = view.findViewById(R.id.version_info);
         updateProgressBar = view.findViewById(R.id.update_progress_bar);
 
         setInitialVersionInfo();
 
+        // Кнопка проверки обновления приложения
         checkForUpdateButton.setOnClickListener(v -> {
             updateProgressBar.setVisibility(View.VISIBLE);
             checkForUpdateButton.setEnabled(false);
             checkForUpdate();
         });
+
+        // Кнопка перехода на экран изхменений.
+        buttonChangelog.setOnClickListener(v -> {
+            Navigation.findNavController(v).navigate(R.id.action_settingsFragment_to_changelogFragment2);
+        });
+
+
+
     }
 
     /**
