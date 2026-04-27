@@ -88,7 +88,7 @@
                         android:id="@+id/buttonResumeWatch"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:backgroundTint="#0AFFFFFF"
+                        android:backgroundTint="#8A8A8A"
                         android:enabled="true"
                         android:text="Продолжить"
                         android:textColor="#FFFFFF" />

@@ -125,7 +125,7 @@
     <fragment
         android:id="@+id/changelogFragment2"
         android:name="com.alaka_ala.florafilm.fragments.changelog.ChangelogFragment"
-        android:label="Chsngelog"
+        android:label="Changelog"
         tools:layout="@layout/fragment_changelog" />
 
 </navigation>
