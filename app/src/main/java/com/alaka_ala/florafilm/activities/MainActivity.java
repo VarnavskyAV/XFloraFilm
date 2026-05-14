@@ -1,9 +1,14 @@
 package com.alaka_ala.florafilm.activities;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.Window;
@@ -96,7 +101,42 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupWithNavController(navView, navController);
 
         filmDetailsDao = KinopoiskDatabaseV2.getDatabase(this).filmDetailsDao();
+        handleDeepLink(getIntent());
     }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleDeepLink(intent);
+    }
+
+    private void handleDeepLink(Intent intent) {
+        if (intent != null && intent.getData() != null) {
+            Uri uri = intent.getData();
+            String movieId = null;
+
+            if ("florafilm".equals(uri.getScheme()) && "movie".equals(uri.getHost())) {
+                String path = uri.getPath();
+                if (path != null && path.contains("/detail/")) {
+                    movieId = path.substring(path.lastIndexOf('/') + 1);
+                }
+            }
+
+            if (movieId != null) {
+                Log.d("DeepLink", "Received movie ID: " + movieId);
+                navigateToMovieDetail(movieId);
+            }
+        }
+    }
+
+    private void navigateToMovieDetail(String movieId) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            // Ваша навигация
+            Toast.makeText(this, "Фильм:" + movieId, Toast.LENGTH_SHORT).show();
+
+        });
+    }
+
 
     public void showBottomNavigationView() {
         if (navView.getVisibility() == View.GONE) {

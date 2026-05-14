@@ -24,11 +24,41 @@
             android:windowSoftInputMode="adjustResize"
             android:supportsPictureInPicture="true"
             android:resizeableActivity="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Deep Link для вашей кастомной схемы -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="florafilm"
+                    android:host="movie"
+                    android:pathPrefix="/detail" />
+            </intent-filter>
+
+            <!-- Deep Link для HTTPS (florafilm.ru) -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- Кастомная схема -->
+                <data android:scheme="florafilm" />
+                <data android:host="movie" />
+                <data android:pathPrefix="/detail" />
+
+                <!-- HTTPS схема -->
+                <data android:scheme="https" />
+                <data android:host="florafilm.ru" />
+                <data android:pathPrefix="/movie" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -41,5 +71,8 @@
                 android:resource="@xml/file_paths" />
         </provider>
     </application>
+
+
+
 
 </manifest>
