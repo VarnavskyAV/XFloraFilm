@@ -374,7 +374,7 @@ public class HDVB implements Balancer {
         return seasons;
     }
 
-    private String extractJson(String html) {
+    /*private String extractJson(String html) {
         Pattern[] patterns = {
                 Pattern.compile("playerConfigs = +(.+);{1}"),
                 Pattern.compile("playerConfigs = +(.+); {1}"),
@@ -392,7 +392,43 @@ public class HDVB implements Balancer {
             }
         }
         return "";
+    }*/
+
+    private String extractJson(String html) {
+        Pattern[] patterns = {
+                // Новый паттерн для p2aCon (используется в фильмах)
+                Pattern.compile("let p2aCon = (\\{[\\s\\S]*?\\});"),
+                // Старые паттерны для playerConfigs (используются в сериалах)
+                Pattern.compile("playerConfigs = +(.+);{1}"),
+                Pattern.compile("playerConfigs = +(.+); {1}"),
+                Pattern.compile("playerConfigs = +(.+); {3}"),
+                Pattern.compile("playerConfigs = +(.+);{3}"),
+                Pattern.compile("playerConfigs = +(.+); {2}"),
+                Pattern.compile("playerConfigs = +(.+);{2}")
+        };
+
+        for (Pattern pattern : patterns) {
+            Matcher matcher = pattern.matcher(html);
+            if (matcher.find() && matcher.groupCount() > 0) {
+                String result = matcher.group(0);
+
+                // Для p2aCon
+                if (result.startsWith("let p2aCon = ")) {
+                    return result
+                            .replaceAll("let p2aCon = ", "")
+                            .replaceAll(";$", "");
+                }
+                // Для playerConfigs
+                else {
+                    return result
+                            .replaceAll("playerConfigs = ", "")
+                            .replaceAll(";", "");
+                }
+            }
+        }
+        return "";
     }
+
 
     private void runOnMainThread(Runnable action) {
         new Handler(Looper.getMainLooper()).post(action);

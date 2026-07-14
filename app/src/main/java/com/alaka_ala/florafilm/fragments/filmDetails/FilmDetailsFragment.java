@@ -263,6 +263,9 @@ public class FilmDetailsFragment extends Fragment {
 
                         @Override
                         public void onError(String error) {
+                            if (getActivity() != null) {
+                                Toast.makeText(getActivity(), error, Toast.LENGTH_SHORT).show();
+                            }
                             onBalancerLoaded();
                         }
                     });
