@@ -49,6 +49,22 @@ public class ChangelogFragment extends Fragment {
         List<ChangelogItem> changelogItems = new ArrayList<>();
 
         changelogItems.add(new ChangelogItem(
+                "2.0.0.67",
+                "01 Октября 2026",
+                "# Основные изменения\n" +
+                        "- Восстановил просмотр по балансеру ALLOHA. Стабильность предстоит еще проверить!"
+        ));
+
+
+        changelogItems.add(new ChangelogItem(
+                "2.0.0.66",
+                "06 Июня 2026",
+                "# Основные изменения\n" +
+                        "- Исправил парсинг балансеров."
+        ));
+
+
+        changelogItems.add(new ChangelogItem(
                 "2.0.0.65",
                 "27 апреля 2026",
                 "# Основные изменения\n" +

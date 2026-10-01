@@ -407,7 +407,7 @@ public final class AllohaParserJava {
                 "              if (_heartbeatTimer) clearInterval(_heartbeatTimer);\n" +
                 "              _heartbeatTimer = setInterval(function () {\n" +
                 "                if (!isDone) return;\n" +
-                "                if (!ws || ws.readyState !== 1) return; // OPEN\n" +
+                "                if (!ws || ws.readyState !== 1) return;\n" +
                 "\n" +
                 "                var t = Math.floor((Date.now() - _sessionStart) / 1000);\n" +
                 "                try {\n" +
@@ -472,7 +472,6 @@ public final class AllohaParserJava {
                 "              return _origSend.call(this, data);\n" +
                 "            };\n" +
                 "\n" +
-                "            // Backup override for new sockets created later\n" +
                 "            var OrigWS = iframeWin.WebSocket;\n" +
                 "            iframeWin.WebSocket = function (url, protocols) {\n" +
                 "              var ws = protocols ? new OrigWS(url, protocols) : new OrigWS(url);\n" +
@@ -486,6 +485,164 @@ public final class AllohaParserJava {
                 "            iframeWin.WebSocket.OPEN = OrigWS.OPEN;\n" +
                 "            iframeWin.WebSocket.CLOSING = OrigWS.CLOSING;\n" +
                 "            iframeWin.WebSocket.CLOSED = OrigWS.CLOSED;\n" +
+                "\n" +
+                "            // =========================================================\n" +
+                "            // --- ДОБАВЛЕННЫЙ HTTP HEARTBEAT ДЛЯ ПОДДЕРЖАНИЯ СЕССИИ ---\n" +
+                "            // =========================================================\n" +
+                "            var hbToken = \"\";\n" +
+                "            try {\n" +
+                "              if (typeof URLSearchParams !== 'undefined') {\n" +
+                "                var params = new URLSearchParams(iframeWin.location.search);\n" +
+                "                hbToken = params.get(\"token\") || \"\";\n" +
+                "              } else {\n" +
+                "                var match = iframeWin.location.search.match(/[?&]token=([^&]+)/);\n" +
+                "                hbToken = match ? match[1] : \"\";\n" +
+                "              }\n" +
+                "            } catch(e) {}\n" +
+                "\n" +
+                "            var hbSessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);\n" +
+                "            var hbRequestId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);\n" +
+                "            var hbPlayerInitAt = Date.now();\n" +
+                "            var hbWatchTimeSec = 0;\n" +
+                "            var hbBytesLoaded = 0;\n" +
+                "            var hbLastManifestUrl = \"\";\n" +
+                "\n" +
+                "            setInterval(function() {\n" +
+                "              if (!isDone || !hbToken) return;\n" +
+                "              \n" +
+                "              var video = iframeWin.document.querySelector(\"video\");\n" +
+                "              var currentTime = video ? video.currentTime : ((Date.now() - hbPlayerInitAt) / 1000);\n" +
+                "              var duration = video ? (video.duration || 10000) : 10000;\n" +
+                "              var paused = video ? video.paused : false;\n" +
+                "              var quality = 720;\n" +
+                "              if (video && video.videoHeight) {\n" +
+                "                  quality = video.videoHeight >= 1080 ? 1080 : (video.videoHeight >= 720 ? 720 : 480);\n" +
+                "              }\n" +
+                "              \n" +
+                "              if (typeof lastM3u8Url !== \"undefined\" && lastM3u8Url) {\n" +
+                "                  hbLastManifestUrl = lastM3u8Url;\n" +
+                "              }\n" +
+                "              \n" +
+                "              hbWatchTimeSec += 13;\n" +
+                "              hbBytesLoaded += 5000000;\n" +
+                "\n" +
+                "              var domain = \"https://lordfilm.boats/\";\n" +
+                "              var referrer = \"https://lordfilm.boats/\";\n" +
+                "              try {\n" +
+                "                domain = iframeWin.location.origin + \"/\";\n" +
+                "                referrer = iframeWin.location.href;\n" +
+                "              } catch(e) {}\n" +
+                "\n" +
+                "              var payloadObj = {\n" +
+                "                \"token\": hbToken,\n" +
+                "                \"domain\": domain,\n" +
+                "                \"isTrailer\": false,\n" +
+                "                \"dropped\": 0,\n" +
+                "                \"playerInitAt\": hbPlayerInitAt,\n" +
+                "                \"clientSessionId\": hbSessionId,\n" +
+                "                \"clientRequestId\": hbRequestId,\n" +
+                "                \"env\": {\n" +
+                "                  \"connectionType\": \"4g\",\n" +
+                "                  \"downlink\": 10,\n" +
+                "                  \"pixelRatio\": 1,\n" +
+                "                  \"screenW\": 1920,\n" +
+                "                  \"screenH\": 1080\n" +
+                "                },\n" +
+                "                \"events\": [{\n" +
+                "                  \"url\": null,\n" +
+                "                  \"manifestUrl\": hbLastManifestUrl || \"https://example.com/master.m3u8\",\n" +
+                "                  \"currentTime\": currentTime,\n" +
+                "                  \"duration\": duration,\n" +
+                "                  \"bufferLength\": 30.0,\n" +
+                "                  \"paused\": paused,\n" +
+                "                  \"audioTrack\": \"(Russian) Dub\",\n" +
+                "                  \"quality\": quality,\n" +
+                "                  \"subtitle\": \"none\",\n" +
+                "                  \"event_type\": \"heartbeat\",\n" +
+                "                  \"bandwidthEstimate\": 15000000,\n" +
+                "                  \"droppedFrames\": 0,\n" +
+                "                  \"droppedFramesDelta\": 0,\n" +
+                "                  \"playedSecondsDelta\": 13,\n" +
+                "                  \"isBuffering\": false,\n" +
+                "                  \"isSeeking\": false,\n" +
+                "                  \"playbackRate\": 1,\n" +
+                "                  \"currentBitrate\": 3000000,\n" +
+                "                  \"currentFrameRate\": 24,\n" +
+                "                  \"videoWidth\": 1280,\n" +
+                "                  \"videoHeight\": quality,\n" +
+                "                  \"isUpscaling\": false,\n" +
+                "                  \"rebufferCountSession\": 0,\n" +
+                "                  \"rebufferTotalMsSession\": 0,\n" +
+                "                  \"bytesLoadedTotal\": hbBytesLoaded,\n" +
+                "                  \"bytesLoadedDelta\": 5000000,\n" +
+                "                  \"at\": Date.now(),\n" +
+                "                  \"since\": Date.now() - hbPlayerInitAt\n" +
+                "                }]\n" +
+                "              };\n" +
+                "\n" +
+                "              var payloadStr = encodeURIComponent(JSON.stringify(payloadObj));\n" +
+                "              var body = \"token=\" + encodeURIComponent(hbToken) + \"&payload=\" + payloadStr;\n" +
+                "\n" +
+                "              try {\n" +
+                "                var xhr = new iframeWin.XMLHttpRequest();\n" +
+                "                xhr.open(\"POST\", \"https://hogun.stloadi.live/events\", true);\n" +
+                "                xhr.setRequestHeader(\"Content-Type\", \"application/x-www-form-urlencoded;charset=UTF-8\");\n" +
+                "                xhr.send(body);\n" +
+                "              } catch(e) {}\n" +
+                "\n" +
+                "              try {\n" +
+                "                var plapiPayload = {\n" +
+                "                  \"source\": \"player\",\n" +
+                "                  \"session_id\": \"ses_\" + hbPlayerInitAt + \"_\" + hbSessionId.substring(0,6),\n" +
+                "                  \"app_version\": \"2.31.8\",\n" +
+                "                  \"referrer\": referrer,\n" +
+                "                  \"properties\": {\n" +
+                "                    \"v\": 3,\n" +
+                "                    \"packet_id\": \"ses_\" + hbPlayerInitAt + \"_\" + hbSessionId.substring(0,6) + \":1\",\n" +
+                "                    \"packet_seq\": 1,\n" +
+                "                    \"started_at\": hbPlayerInitAt,\n" +
+                "                    \"sent_at\": Date.now(),\n" +
+                "                    \"domain\": iframeWin.location.hostname || \"lordfilm.boats\",\n" +
+                "                    \"publisher_id\": \"2793\",\n" +
+                "                    \"content_id\": \"258687\",\n" +
+                "                    \"watched_seconds\": Math.floor(currentTime),\n" +
+                "                    \"dropped_events\": 0,\n" +
+                "                    \"events\": [{\n" +
+                "                      \"what\": \"net_win\",\n" +
+                "                      \"reason\": \"\",\n" +
+                "                      \"err_id\": \"\",\n" +
+                "                      \"msg\": \"\",\n" +
+                "                      \"dur_ms\": 100,\n" +
+                "                      \"status\": 0,\n" +
+                "                      \"bytes\": 5000000,\n" +
+                "                      \"req\": 10,\n" +
+                "                      \"err\": 0,\n" +
+                "                      \"dur_p50_ms\": 50,\n" +
+                "                      \"dur_max_ms\": 100,\n" +
+                "                      \"to_host\": \"\",\n" +
+                "                      \"video_id\": \"18620645661406\",\n" +
+                "                      \"host\": \"vd522.okcdn.ru\",\n" +
+                "                      \"pos\": Math.floor(currentTime),\n" +
+                "                      \"since_play_ms\": Math.floor(currentTime * 1000),\n" +
+                "                      \"started\": 0,\n" +
+                "                      \"phase\": \"play\",\n" +
+                "                      \"hidden\": 0,\n" +
+                "                      \"quality\": quality,\n" +
+                "                      \"tput_kbps\": 3000,\n" +
+                "                      \"downlink_mbps\": 10,\n" +
+                "                      \"net_type\": \"4g\",\n" +
+                "                      \"k\": \"stream_health\",\n" +
+                "                      \"t\": 100\n" +
+                "                    }]\n" +
+                "                  }\n" +
+                "                };\n" +
+                "                var xhr2 = new iframeWin.XMLHttpRequest();\n" +
+                "                xhr2.open(\"POST\", \"https://plapi.cdnvideohub.com/v3/events\", true);\n" +
+                "                xhr2.setRequestHeader(\"Content-Type\", \"text/plain;charset=utf-8\");\n" +
+                "                xhr2.send(JSON.stringify(plapiPayload));\n" +
+                "              } catch(e) {}\n" +
+                "            }, 13000);\n" +
+                "            // --- КОНЕЦ HTTP HEARTBEAT ---\n" +
                 "\n" +
                 "            // ---------------- Keep iframe alive ----------------\n" +
                 "            setInterval(function () {\n" +
@@ -513,4 +670,7 @@ public final class AllohaParserJava {
                 "  </body>\n" +
                 "</html>";
     }
+
+
+
 }

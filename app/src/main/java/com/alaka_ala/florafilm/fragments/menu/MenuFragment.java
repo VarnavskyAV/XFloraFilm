@@ -44,8 +44,8 @@ public class MenuFragment extends Fragment implements MenuAdapter.OnItemClickLis
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         List<MenuItem> menuItems = new ArrayList<>();
-        menuItems.add(new MenuItem("Информация",
-                "Приложение находится в разработке!\n\n" +
+        menuItems.add(new MenuItem("Об олбновлении 2.0.0.67",
+                "Восстановлен просмотр по базе ALLOHA ПРИЯТНОГО ПРОСМОТРА!!\n\n" +
                         "≽^•⩊•^≼", "История изменений", "Поддержать!"));
 
         AppUpdateManager.getInstance(getContext()).checkForUpdate(new AppUpdateManager.UpdateCheckCallback() {

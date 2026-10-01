@@ -96,21 +96,37 @@ public class AllohaStrategy extends BaseStrategy {
         restorePositionForCurrentEpisode(startEpisodeIndex);
         updateFilmViewStatus(true);
 
-        // Слушатель для смены серий
+        // Слушатель для смены серий и обработки ошибок
         player.addAnalyticsListener(new AnalyticsListener() {
             @Override
             public void onPlayerError(EventTime eventTime, PlaybackException error) {
                 AnalyticsListener.super.onPlayerError(eventTime, error);
-                // First try bnsi fallback URL (second link after "or")
-                if (streaming != null) streaming.tryFallbackOnce();
-                else tryFallbackFromBnsi();
+                Log.e(TAG, "Player error: " + error.errorCode + " | " + error.getMessage());
+
+                boolean isNetworkOrParseError = error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+                        error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                        (error.getMessage() != null && error.getMessage().contains("403"));
+
+                if (isNetworkOrParseError) {
+                    // ШАГ 1: Мгновенно пробуем переключиться на резервную ссылку (без перезагрузки WebView)
+                    if (streaming != null) {
+                        streaming.tryFallbackOnce();
+                    } else {
+                        tryFallbackFromBnsi();
+                    }
+
+                    // ШАГ 2: Если кулдаун уже прошел, запускаем полный перезапуск сессии для получения свежих токенов
+                    // (forceRestart сам проверит флаг restartInFlight и не сделает этого, если уже идет)
+                    if (streaming != null) {
+                        streaming.forceRestart("403_fallback_triggered");
+                    }
+                }
             }
 
             @Override
             public void onMediaItemTransition(EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
                 if (player != null) {
                     saveCurrentPositionForEpisode();
-                    // При смене серии загружаем новое видео
                     loadCurrentEpisode();
                 }
             }
@@ -140,6 +156,41 @@ public class AllohaStrategy extends BaseStrategy {
                 .build();
 
         player.setMediaItems(List.of(mediaItem));
+        // Слушатель для смены серий и обработки ошибок
+        player.addAnalyticsListener(new AnalyticsListener() {
+            @Override
+            public void onPlayerError(EventTime eventTime, PlaybackException error) {
+                AnalyticsListener.super.onPlayerError(eventTime, error);
+                Log.e(TAG, "Player error: " + error.errorCode + " | " + error.getMessage());
+
+                boolean isNetworkOrParseError = error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+                        error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                        (error.getMessage() != null && error.getMessage().contains("403"));
+
+                if (isNetworkOrParseError) {
+                    // ШАГ 1: Мгновенно пробуем переключиться на резервную ссылку (без перезагрузки WebView)
+                    if (streaming != null) {
+                        streaming.tryFallbackOnce();
+                    } else {
+                        tryFallbackFromBnsi();
+                    }
+
+                    // ШАГ 2: Если кулдаун уже прошел, запускаем полный перезапуск сессии для получения свежих токенов
+                    // (forceRestart сам проверит флаг restartInFlight и не сделает этого, если уже идет)
+                    if (streaming != null) {
+                        streaming.forceRestart("403_fallback_triggered");
+                    }
+                }
+            }
+
+            @Override
+            public void onMediaItemTransition(EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
+                if (player != null) {
+                    saveCurrentPositionForEpisode();
+                    loadCurrentEpisode();
+                }
+            }
+        });
         restorePositionForMovie();
         updateFilmViewStatus(true);
 

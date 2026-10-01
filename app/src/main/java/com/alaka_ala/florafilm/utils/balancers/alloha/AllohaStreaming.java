@@ -203,6 +203,38 @@ public final class AllohaStreaming {
         return currentM3u8Url;
     }
 
+    /**
+     * Принудительный перезапуск сессии в обход дебаунса.
+     * Вызывается при получении 403 Forbidden, когда токены гарантированно протухли.
+     */
+    public void forceRestart(@NonNull String reason) {
+        // Если перезапуск уже идет, просто игнорируем повторные вызовы
+        if (restartInFlight) {
+            Log.d(TAG, "Restart already in flight, ignoring duplicate request");
+            return;
+        }
+
+        restartInFlight = true;
+        callback.onStatus("Alloha: FORCE restarting session (" + reason + ")");
+        Log.w(TAG, "Force restarting session due to: " + reason);
+
+        mainHandler.post(() -> {
+            try {
+                stopParserOnly();
+                fallbackUsed = false;
+
+                if (currentIframeUrl != null && !currentIframeUrl.isBlank()) {
+                    start(currentIframeUrl);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Force restart failed", e);
+                callback.onError("Failed to restart stream: " + safeMsg(e));
+            } finally {
+                restartInFlight = false;
+            }
+        });
+    }
+
     @NonNull
     public Map<String, String> getActiveHeadersSnapshot() {
         return new LinkedHashMap<>(activeHeaders);

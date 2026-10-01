@@ -32,6 +32,10 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public final class HlsProxyServerJava {
+    private volatile long lastRestartRequestMs = 0;
+    private static final long RESTART_COOLDOWN_MS = 15000L; // 5 секунд
+
+
     private static final String TAG = "HlsProxyJava";
     private static final int PORT = 8080;
     private static final int PREFETCH = 2;
@@ -392,19 +396,25 @@ public final class HlsProxyServerJava {
 
     private String fetchText(String url) {
         try (Response resp = client.newCall(buildRequest(url)).execute()) {
-            if (!resp.isSuccessful()) {
-                Log.w(TAG, "fetchText HTTP " + resp.code() + " for " + head(url));
-                if (resp.code() == 403) {
+            if (resp.code() == 403) {
+                long now = System.currentTimeMillis();
+                if (now - lastRestartRequestMs > RESTART_COOLDOWN_MS) {
+                    lastRestartRequestMs = now;
+                    Log.w(TAG, "fetchText 403 (Token expired). Triggering ONE session restart...");
                     connectionPool.evictAll();
+                    onSessionExpired.run();
+                } else {
+                    Log.d(TAG, "fetchText 403 IGNORED (cooldown active). Returning null to let ExoPlayer handle it.");
+                    return null; // ВАЖНО: сразу возвращаем null, не пытаясь делать retry
                 }
-                // Retry once on 500/503 (CDN node hiccup)
+            }
+
+            if (!resp.isSuccessful()) {
                 if (resp.code() == 500 || resp.code() == 503) {
                     connectionPool.evictAll();
                     Request retry = buildRequest(url).newBuilder().header("Connection", "close").build();
                     try (Response rr = client.newCall(retry).execute()) {
                         if (!rr.isSuccessful()) {
-                            Log.w(TAG, "fetchText retry also HTTP " + rr.code() + " for " + head(url));
-                            // stream-balancer keeps 500 -> force session restart
                             if (url != null && url.contains("stream-balancer")) onSessionExpired.run();
                             return null;
                         }
@@ -423,23 +433,27 @@ public final class HlsProxyServerJava {
     private byte[] fetchBytes(String url) {
         try (Response resp = client.newCall(buildRequest(url)).execute()) {
             if (resp.code() == 403) {
-                Log.w(TAG, "fetchBytes 403 for " + tail(url) + ", evicting and retrying");
-                connectionPool.evictAll();
-                Request retry = buildRequest(url).newBuilder().header("Connection", "close").build();
-                try (Response rr = client.newCall(retry).execute()) {
-                    if (!rr.isSuccessful()) Log.w(TAG, "fetchBytes retry also " + rr.code() + " for " + tail(url));
-                    return rr.isSuccessful() && rr.body() != null ? rr.body().bytes() : null;
+                long now = System.currentTimeMillis();
+                if (now - lastRestartRequestMs > RESTART_COOLDOWN_MS) {
+                    lastRestartRequestMs = now;
+                    Log.w(TAG, "fetchBytes 403 (Token expired). Triggering ONE session restart...");
+                    connectionPool.evictAll(); // Сбрасываем все соединения немедленно
+                    onSessionExpired.run();
+                } else {
+                    Log.d(TAG, "fetchBytes 403 IGNORED (cooldown active). Aborting fetch to let ExoPlayer fallback.");
+                    // ВАЖНО: Не делаем retry! Возвращаем null.
+                    // Это заставит ExoPlayer вызвать onPlayerError, где сработает tryFallbackOnce()
+                    return null;
                 }
             }
+
             if (!resp.isSuccessful()) {
                 Log.w(TAG, "fetchBytes HTTP " + resp.code() + " for " + tail(url));
-                // Retry once on 500/503
                 if (resp.code() == 500 || resp.code() == 503) {
                     connectionPool.evictAll();
                     Request retry = buildRequest(url).newBuilder().header("Connection", "close").build();
                     try (Response rr = client.newCall(retry).execute()) {
                         if (!rr.isSuccessful()) {
-                            Log.w(TAG, "fetchBytes retry also " + rr.code() + " for " + tail(url));
                             if (url != null && url.contains("stream-balancer")) onSessionExpired.run();
                             return null;
                         }
