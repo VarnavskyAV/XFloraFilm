@@ -10,9 +10,9 @@ import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.ExoPlayer;
 
 import com.alaka_ala.florafilm.data.media.PlayerLaunchData;
+import com.alaka_ala.unofficial_kinopoisk_api.api.PositionStorage;
 import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 
@@ -29,7 +29,7 @@ public abstract class BaseStrategy implements PlayerSourceStrategy {
 
     protected PlayerLaunchData launchData;
     protected FilmDetails filmDetails;
-    protected Map<String, Long> savedPositionsMap;
+    protected PositionStorage positionStorage;
     protected ExecutorService executorService;
     protected Handler mainHandler;
     protected ExoPlayer player;
@@ -41,13 +41,13 @@ public abstract class BaseStrategy implements PlayerSourceStrategy {
     public void setupPlayback(Context context, ExoPlayer player,
                               PlayerLaunchData launchData,
                               FilmDetails filmDetails,
-                              Map<String, Long> savedPositionsMap,
+                              PositionStorage positionStorage,
                               ExecutorService executorService,
                               Handler mainHandler) {
         this.player = player;
         this.launchData = launchData;
         this.filmDetails = filmDetails;
-        this.savedPositionsMap = savedPositionsMap;
+        this.positionStorage = positionStorage;
         this.executorService = executorService;
         this.mainHandler = mainHandler;
         this.context = context;

@@ -69,9 +69,6 @@ public interface FilmDetailsDao {
     /**Возвращает только список фильмов которые были добавлены в закладки */
     @Query("SELECT * FROM film_details WHERE isBookmark = 1")
     LiveData<List<FilmDetails>> getByBookmark();
-    /**Возвращает только список фильмов которые были добавлены в список отслеживаемых озвучек */
-    @Query("SELECT * FROM film_details WHERE observeUpdateVoice = 1")
-    LiveData<List<FilmDetails>> getFilmByObserveVoice();
 
     @Query("DELETE FROM film_details WHERE kinopoiskId = :kinopoiskId")
     void removeByKinopoiskId(int kinopoiskId);

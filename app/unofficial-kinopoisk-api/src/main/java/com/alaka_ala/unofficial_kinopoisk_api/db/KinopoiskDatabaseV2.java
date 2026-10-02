@@ -20,6 +20,7 @@ import com.alaka_ala.unofficial_kinopoisk_api.models.Person;
 import com.alaka_ala.unofficial_kinopoisk_api.models.PersonSearchResponse;
 import com.alaka_ala.unofficial_kinopoisk_api.models.Staff;
 import com.alaka_ala.unofficial_kinopoisk_api.models.StaffResponse;
+import com.alaka_ala.unofficial_kinopoisk_api.models.WatchPosition;
 
 /**
  * The Room database for caching Kinopoisk API responses V2.
@@ -38,8 +39,9 @@ import com.alaka_ala.unofficial_kinopoisk_api.models.StaffResponse;
         Person.class,
         PersonSearchResponse.class,
         FilmAwardsResponse.class,
-        FilmFactsResponse.class
-}, version = 1, exportSchema = false)
+        FilmFactsResponse.class,
+        WatchPosition.class
+}, version = 4, exportSchema = false)
 @TypeConverters({Converters.class})
 public abstract class KinopoiskDatabaseV2 extends RoomDatabase {
 
@@ -64,6 +66,9 @@ public abstract class KinopoiskDatabaseV2 extends RoomDatabase {
     public abstract FilmAwardsResponseDao filmAwardsResponseDao();
 
     public abstract FilmFactsResponseDao filmFactsResponseDao();
+
+    public abstract WatchPositionDao watchPositionDao(); // Сохранение позиции просмотра фильма/сериала
+
 
     private static volatile KinopoiskDatabaseV2 INSTANCE;
 

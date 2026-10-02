@@ -165,9 +165,6 @@ public class FilmDetails extends BaseModel {
     /**Позиция просмотра фильма (Возможно придется перенести в отдельный класс по данным для просмотра)*/
     private long positionView;
 
-    /** Флаг предназначен для отслеживания обновлений фильма. Задел на будущее, что бы можно было добавлять фильм в список ожидаемых*/
-    private boolean observeUpdateVoice;
-
     /**Флаг на то добавлен ли филльм в закладки (избранное)*/
     private boolean isBookmark;
     /**Флаг который нужен для того, что бы отслеживать актуальность данных.
@@ -248,9 +245,7 @@ public class FilmDetails extends BaseModel {
     public long getTimestampAddedHistory() {
         return timestampAddedHistory;
     }
-    public boolean isObserveUpdateVoice(){
-        return observeUpdateVoice;
-    }
+
     public Map<String, Long> getLastPositionPlayerView() {
         return lastPositionPlayerView;
     }
@@ -320,9 +315,7 @@ public class FilmDetails extends BaseModel {
     public void setTimestampAddedHistory(long timestampAddedHistory) {
         this.timestampAddedHistory = timestampAddedHistory;
     }
-    public void setObserveUpdateVoice(boolean isObserveUpdateVoice) {
-        this.observeUpdateVoice = isObserveUpdateVoice;
-    }
+
     /**Нужно для сохранения позиции просмотра фильма или сериала.*/
     public void setLastPositionPlayerView(Map<String, Long> lastPositionPlayerView) {
         this.lastPositionPlayerView = lastPositionPlayerView;

@@ -3,8 +3,6 @@ package com.alaka_ala.florafilm.fragments.player;
 import android.annotation.SuppressLint;
 import android.app.PictureInPictureParams;
 import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -24,7 +22,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.PictureInPictureModeChangedInfo;
 import androidx.core.util.Consumer;
 import androidx.fragment.app.Fragment;
@@ -38,26 +35,21 @@ import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentPlayerBinding;
 import com.alaka_ala.florafilm.activities.MainActivity;
 import com.alaka_ala.florafilm.data.media.PlayerLaunchData;
+import com.alaka_ala.unofficial_kinopoisk_api.api.PositionStorage;
 import com.alaka_ala.florafilm.fragments.player.strategy.AllohaStrategy;
 import com.alaka_ala.florafilm.fragments.player.strategy.HDVBStrategy;
 import com.alaka_ala.florafilm.fragments.player.strategy.PlayerSourceStrategy;
 import com.alaka_ala.florafilm.utils.settings.AppPreferences;
 import com.alaka_ala.unofficial_kinopoisk_api.db.FilmDetailsDao;
 import com.alaka_ala.unofficial_kinopoisk_api.db.KinopoiskDatabaseV2;
+import com.alaka_ala.unofficial_kinopoisk_api.db.WatchPositionDao;
 import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @UnstableApi
 public class PlayerFragment extends Fragment {
-
-    // Константы
-    private static final long SAVE_POSITION_INTERVAL_MS = 5000;
 
     // UI элементы
     private FragmentPlayerBinding binding;
@@ -72,7 +64,6 @@ public class PlayerFragment extends Fragment {
 
     // Обработчики
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final Handler savePositionHandler = new Handler(Looper.getMainLooper());
 
     // Плеер и данные
     private ExoPlayer player;
@@ -81,11 +72,12 @@ public class PlayerFragment extends Fragment {
     private FilmDetails filmDetails;
     private ExecutorService executorService;
     private FilmDetailsDao filmDetailsDao;
+    private WatchPositionDao watchPositionDao;
+    private PositionStorage positionStorage;
     private PlayerSourceStrategy sourceStrategy;
 
     // Состояние
     private boolean isDestroyed = false;
-    private Map<String, Long> savedPositionsMap = new HashMap<>();
     private MainActivity mainActivity;
     private int originalOrientation;
     private boolean isScreenRotated = false;
@@ -101,15 +93,6 @@ public class PlayerFragment extends Fragment {
             AspectRatioFrameLayout.RESIZE_MODE_FIT,
             AspectRatioFrameLayout.RESIZE_MODE_FILL,
             AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-    };
-
-    // Runnable для периодических задач
-    private final Runnable savePositionRunnable = new Runnable() {
-        @Override
-        public void run() {
-            saveCurrentPosition();
-            savePositionHandler.postDelayed(this, SAVE_POSITION_INTERVAL_MS);
-        }
     };
 
     @Override
@@ -216,7 +199,6 @@ public class PlayerFragment extends Fragment {
 
     private void setFullscreen(boolean fullscreen) {
         if (fullscreen) {
-            // Включаем полный экран
             requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
             View decorView = requireActivity().getWindow().getDecorView();
@@ -226,15 +208,11 @@ public class PlayerFragment extends Fragment {
                             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             );
         } else {
-            // Выключаем полный экран - СБРАСЫВАЕМ ВСЁ
             Window window = requireActivity().getWindow();
             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
             View decorView = window.getDecorView();
-            // ВОТ ЭТО ВАЖНО - сбрасываем системные флаги
             decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-
-            // Дополнительно - показываем статус и навигацию принудительно
             window.getDecorView().setSystemUiVisibility(0);
         }
     }
@@ -243,13 +221,10 @@ public class PlayerFragment extends Fragment {
         Window window = requireActivity().getWindow();
         if (window == null) return;
 
-        // Проверяем текущее реальное состояние флага
         WindowManager.LayoutParams attrs = window.getAttributes();
         boolean isCurrentlyFullscreen = (attrs.flags & WindowManager.LayoutParams.FLAG_FULLSCREEN) != 0;
 
-        // Если текущее состояние не соответствует нужному - принудительно устанавливаем
         if (shouldBeFullscreen && !isCurrentlyFullscreen) {
-            // Полностью перезаписываем флаг, а не добавляем
             window.setFlags(
                     WindowManager.LayoutParams.FLAG_FULLSCREEN,
                     WindowManager.LayoutParams.FLAG_FULLSCREEN
@@ -263,7 +238,6 @@ public class PlayerFragment extends Fragment {
                 decorView.setSystemUiVisibility(uiOptions);
             }
         } else if (!shouldBeFullscreen && isCurrentlyFullscreen) {
-            // Принудительно снимаем флаг (очищаем полностью)
             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
             View decorView = window.getDecorView();
@@ -343,8 +317,12 @@ public class PlayerFragment extends Fragment {
         loadFilmDetails();
     }
 
+    @SuppressLint("SetTextI18n")
     private void loadFilmDetails() {
         filmDetailsDao = KinopoiskDatabaseV2.getDatabase(requireContext()).filmDetailsDao();
+        watchPositionDao = KinopoiskDatabaseV2.getDatabase(requireContext()).watchPositionDao();
+        positionStorage = new PositionStorage(watchPositionDao, executorService, mainHandler);
+
         filmDetails = filmDetailsDao.getById(kinopoiskId);
 
         if (filmDetails == null) {
@@ -352,14 +330,11 @@ public class PlayerFragment extends Fragment {
             return;
         }
 
-        Map<String, Long> lastPositionPlayerView = filmDetails.getLastPositionPlayerView();
-        if (lastPositionPlayerView != null) {
-            savedPositionsMap.putAll(lastPositionPlayerView);
-        }
+        binding.textViewTitleMovie.setText(filmDetails.getBestName() + " (" + filmDetails.getYear() + ")");
 
         sourceStrategy = createSourceStrategy();
 
-        mainHandler.post(() -> initializePlayer());
+        mainHandler.post(this::initializePlayer);
     }
 
     private PlayerSourceStrategy createSourceStrategy() {
@@ -417,7 +392,7 @@ public class PlayerFragment extends Fragment {
                 player,
                 launchData,
                 filmDetails,
-                savedPositionsMap,
+                positionStorage,
                 executorService,
                 mainHandler
         );
@@ -429,123 +404,33 @@ public class PlayerFragment extends Fragment {
             public void onPlaybackStateChanged(int playbackState) {
                 switch (playbackState) {
                     case Player.STATE_READY:
-                        if (!isDestroyed) {
-                            savePositionHandler.post(savePositionRunnable);
-                        }
+                        // Позицию сохраняет стратегия через свой таймер — здесь ничего не делаем.
                         break;
                     case Player.STATE_ENDED:
-                        resetCurrentPosition();
-                        savePositionHandler.removeCallbacks(savePositionRunnable);
+                        // Конец — стратегия сама разберётся. Пока просто ничего.
                         break;
                     case Player.STATE_IDLE:
                     case Player.STATE_BUFFERING:
-                        savePositionHandler.removeCallbacks(savePositionRunnable);
                         break;
                 }
             }
 
             @Override
             public void onPlayWhenReadyChanged(boolean playWhenReady, int reason) {
-                if (!playWhenReady && !isDestroyed) {
-                    saveCurrentPosition();
-                }
+                // При паузе позицию сохранит стратегия — там единая точка.
             }
         });
 
-        binding.playerView.setControllerVisibilityListener(new PlayerView.ControllerVisibilityListener() {
-            @Override
-            public void onVisibilityChanged(int visibility) {
-                if (customControlsLayout == null) return;
+        binding.playerView.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener) visibility -> {
+            if (customControlsLayout == null) return;
 
-                if (visibility == View.VISIBLE) {
-                    customControlsLayout.setVisibility(View.VISIBLE);
-                    isControllerVisible = true;
-                } else {
-                    customControlsLayout.setVisibility(View.GONE);
-                    isControllerVisible = false;
-                }
+            if (visibility == View.VISIBLE) {
+                customControlsLayout.setVisibility(View.VISIBLE);
+                isControllerVisible = true;
+            } else {
+                customControlsLayout.setVisibility(View.GONE);
+                isControllerVisible = false;
             }
-        });
-    }
-
-    @SuppressLint("SetTextI18n")
-    private void saveCurrentPosition() {
-        if (isDestroyed || player == null || filmDetails == null || player.getCurrentMediaItem() == null) {
-            return;
-        }
-
-        String key = sourceStrategy.getPositionKey(player, kinopoiskId);
-        long position = player.getCurrentPosition();
-        int currentMediaItemIndex = player.getCurrentMediaItemIndex();
-        savedPositionsMap.put(key, position);
-
-        executorService.execute(() -> {
-            if (isDestroyed) return;
-
-            FilmDetails currentDetails = filmDetailsDao.getById(kinopoiskId);
-            if (currentDetails != null) {
-                Map<String, Long> positionMap = currentDetails.getLastPositionPlayerView() != null
-                        ? new HashMap<>(currentDetails.getLastPositionPlayerView())
-                        : new HashMap<>();
-
-                positionMap.put(key, position);
-                List<Integer> selectedIndex = new ArrayList<>(launchData.getSelectedIndexPath());
-                if (filmDetails.isSerial()) {
-                    if (selectedIndex.size() > 2) {
-                        selectedIndex.set(2, currentMediaItemIndex);
-                    } else {
-                        selectedIndex.add(2, currentMediaItemIndex);
-                    }
-                    filmDetails.setSelectedIndexPath(selectedIndex);
-
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        // Balancer > Seasons > Episode > Translation > quality
-                        if (getContext() == null) return;
-                        binding.textViewTitleMovie.setText(currentDetails.getBestName() + "(" + currentDetails.getYear() + ") | Сезон: " + (selectedIndex.get(1) + 1) + " | Эпизод: " + (selectedIndex.get(2) + 1));
-                    });
-                } else {
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        // Balancer > Translation > quality
-                        if (getContext() == null) return;
-                        binding.textViewTitleMovie.setText(currentDetails.getBestName() + "(" + currentDetails.getYear() + ")");
-                    });
-                }
-                filmDetails.setIsStartView(true);
-                filmDetailsDao.insertAndPreservePositions(filmDetails);
-                filmDetailsDao.updatePositions(kinopoiskId, positionMap);
-
-
-
-                if (filmDetails != null) {
-                    filmDetails.setLastPositionPlayerView(positionMap);
-                }
-            }
-        });
-    }
-
-    private void resetCurrentPosition() {
-        if (isDestroyed) return;
-
-        mainHandler.post(() -> {
-            if (player == null) return;
-
-            String key = sourceStrategy.getPositionKey(player, kinopoiskId);
-            savedPositionsMap.remove(key);
-
-            executorService.execute(() -> {
-                if (isDestroyed) return;
-
-                FilmDetails currentDetails = filmDetailsDao.getById(kinopoiskId);
-                if (currentDetails != null) {
-                    Map<String, Long> positionMap = currentDetails.getLastPositionPlayerView() != null
-                            ? new HashMap<>(currentDetails.getLastPositionPlayerView())
-                            : new HashMap<>();
-
-                    positionMap.remove(key);
-                    filmDetailsDao.updatePositions(kinopoiskId, positionMap);
-                    filmDetails.setLastPositionPlayerView(positionMap);
-                }
-            });
         });
     }
 
@@ -580,8 +465,6 @@ public class PlayerFragment extends Fragment {
         }
 
         if (player == null) return;
-
-        saveCurrentPosition();
 
         float videoAspectRatio = getVideoAspectRatio();
         Rational aspectRatio = new Rational(
@@ -709,22 +592,13 @@ public class PlayerFragment extends Fragment {
         }
     }
 
-    /**
-     * Проверяет, поддерживается ли режим "Картинка в картинке" на устройстве
-     * @return true если PiP поддерживается, false в противном случае
-     */
     private boolean isPictureInPictureSupported() {
-        // PiP доступен только на Android 8.0 (API 26) и выше
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return false;
         }
 
-        // Пытаемся войти в PiP режим с пустыми параметрами
-        // Если выбросит исключение - значит не поддерживается
         try {
             PictureInPictureParams.Builder builder = new PictureInPictureParams.Builder();
-            // Не вызываем enterPictureInPictureMode, просто проверяем через рефлексию
-            // или полагаемся на версию Android
             return true;
         } catch (Exception e) {
             return false;
@@ -736,8 +610,6 @@ public class PlayerFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        saveCurrentPosition();
-        savePositionHandler.removeCallbacks(savePositionRunnable);
 
         if (player != null && player.isPlaying() && !isInPipMode) {
             player.pause();
@@ -749,7 +621,6 @@ public class PlayerFragment extends Fragment {
         super.onResume();
         if (player != null && !isDestroyed && !isInPipMode) {
             player.play();
-            savePositionHandler.post(savePositionRunnable);
         }
 
         setFullscreen(true);
@@ -758,29 +629,12 @@ public class PlayerFragment extends Fragment {
     @Override
     public void onDestroyView() {
         isDestroyed = true;
-        savePositionHandler.removeCallbacks(savePositionRunnable);
-
-        if (!isInPipMode && player != null && filmDetails != null && player.getCurrentMediaItem() != null) {
-            String key = sourceStrategy.getPositionKey(player, kinopoiskId);
-            long position = player.getCurrentPosition();
-
-            final String finalKey = key;
-            final long finalPosition = position;
-
-            new Thread(() -> {
-                FilmDetails currentDetails = filmDetailsDao.getById(kinopoiskId);
-                Map<String, Long> positionMap = currentDetails != null &&
-                        currentDetails.getLastPositionPlayerView() != null
-                        ? new HashMap<>(currentDetails.getLastPositionPlayerView())
-                        : new HashMap<>();
-
-                positionMap.put(finalKey, finalPosition);
-                filmDetailsDao.updatePositions(kinopoiskId, positionMap);
-            }).start();
-        }
 
         if (player != null && !isInPipMode) {
-            sourceStrategy.cleanup(player);
+            // Финальное сохранение позиции и отписка от аналитики — внутри cleanup().
+            if (sourceStrategy != null) {
+                sourceStrategy.cleanup(player);
+            }
             player.stop();
             player.release();
             player = null;

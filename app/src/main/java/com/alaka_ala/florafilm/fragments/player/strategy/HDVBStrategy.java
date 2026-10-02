@@ -11,6 +11,7 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener;
 
 import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.data.media.PlayerLaunchData;
+import com.alaka_ala.unofficial_kinopoisk_api.api.PositionStorage;
 import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter.File;
 import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter.Folder;
 import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter.Item;
@@ -19,26 +20,45 @@ import com.alaka_ala.unofficial_kinopoisk_api.models.FilmDetails;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 @UnstableApi
 public class HDVBStrategy extends BaseStrategy {
 
+    private static final String BALANCER_NAME = "HDVB";
+
     private HDVB hdvb;
     private AnalyticsListener analyticsListener;
     private boolean isSerial;
     private Context context;
+    private PositionStorage positionStorage;
+
+    /** Индекс целевого эпизода в плейлисте (может не совпадать с индексом в пути). */
+    private int targetPlaylistIndex = 0;
+
+    /** Периодическое сохранение позиции. */
+    private final Runnable saveTick = new Runnable() {
+        @Override
+        public void run() {
+            saveCurrentPosition();
+            if (mainHandler != null) {
+                mainHandler.postDelayed(this, 5000);
+            }
+        }
+    };
 
     @Override
     public void setupPlayback(Context context, ExoPlayer player, PlayerLaunchData launchData, FilmDetails filmDetails,
-                              Map<String, Long> savedPositionsMap, ExecutorService executorService,
+                              PositionStorage positionStorage, ExecutorService executorService,
                               Handler mainHandler) {
         this.isSerial = filmDetails.isSerial();
         this.hdvb = new HDVB(context.getString(R.string.api_key_hdvb));
         this.context = context;
-        super.setupPlayback(context, player, launchData, filmDetails, savedPositionsMap, executorService, mainHandler);
+        this.positionStorage = positionStorage;
+        super.setupPlayback(context, player, launchData, filmDetails, positionStorage, executorService, mainHandler);
     }
+
+    // ===================== SERIAL =====================
 
     @Override
     protected void setupSerialPlayback() {
@@ -50,36 +70,19 @@ public class HDVBStrategy extends BaseStrategy {
         }
 
         player.setMediaItems(mediaItems);
-        int startEpisodeIndex = launchData.getSelectedIndexPath().get(INDEX_EPISODES);
-        restorePositionForCurrentEpisode(startEpisodeIndex);
+
+        // Сначала перейти на нужный эпизод, потом восстанавливать позицию внутри него.
+        player.seekTo(targetPlaylistIndex, 0);
+
+        restorePositionForCurrentEpisode(targetPlaylistIndex);
         setupSerialAnalyticsListener();
-        updateFilmViewStatus(true);
+        updateFilmViewStatus();
+
+        player.prepare();
+        player.play();
+
         loadDirectVideoUrlForCurrentItem();
-
-        player.prepare();
-        player.play();
-    }
-
-    @Override
-    protected void setupMoviePlayback() {
-        File startingFile = findFileByPath(launchData.getSelectedIndexPath());
-        if (startingFile == null) {
-            showToast("Не удалось найти файл для воспроизведения");
-            return;
-        }
-
-        MediaItem mediaItem = createMediaItem(
-                String.valueOf(filmDetails.getKinopoiskId()),
-                startingFile,
-                startingFile.videoUrl
-        );
-
-        player.setMediaItems(List.of(mediaItem));
-        restorePositionForMovie();
-        updateFilmViewStatus(true);
-
-        player.prepare();
-        player.play();
+        mainHandler.postDelayed(saveTick, 5000);
     }
 
     private List<MediaItem> createSerialMediaItems() {
@@ -93,18 +96,23 @@ public class HDVBStrategy extends BaseStrategy {
             return mediaItems;
         }
 
-        // Получаем выбранную озвучку по индексу из первой серии (как эталон)
-        Folder firstEpisode = (Folder) ((Folder) selectedSeason).children.get(selectedIndexPath.get(INDEX_VOICE));
-        //Folder firstEpisode = (Folder) ((Folder) selectedSeason).children.get(0);
-        Folder selectedVoiceTemplate = (Folder) firstEpisode.children.get(selectedIndexPath.get(INDEX_VOICE));
-        String selectedVoiceTitle = selectedVoiceTemplate.name; // Запоминаем название выбранной озвучки
+        int selectedEpisodeIndex = selectedIndexPath.get(INDEX_EPISODES);
+        int selectedVoiceIndex = selectedIndexPath.get(INDEX_VOICE);
+        int selectedQualityIndex = selectedIndexPath.get(INDEX_QUALITY);
+
+        Folder selectedEpisodeFolder = (Folder) ((Folder) selectedSeason).children.get(selectedEpisodeIndex);
+        if (selectedEpisodeFolder.children.size() <= selectedVoiceIndex) {
+            return mediaItems;
+        }
+        Folder selectedVoiceTemplate = (Folder) selectedEpisodeFolder.children.get(selectedVoiceIndex);
+        String selectedVoiceTitle = selectedVoiceTemplate.name;
+
         for (int episodeIndex = 0; episodeIndex < ((Folder) selectedSeason).children.size(); episodeIndex++) {
             Item episodeItem = ((Folder) selectedSeason).children.get(episodeIndex);
             if (!(episodeItem instanceof Folder)) continue;
 
             Folder episodeFolder = (Folder) episodeItem;
 
-            // Ищем озвучку с таким же названием в текущей серии
             Folder selectedVoice = null;
             for (Item voiceItem : episodeFolder.children) {
                 if (voiceItem instanceof Folder) {
@@ -116,59 +124,45 @@ public class HDVBStrategy extends BaseStrategy {
                 }
             }
 
-            // Если озвучка не найдена в этой серии, пропускаем или берем первую доступную
-            if (selectedVoice == null && !episodeFolder.children.isEmpty()) {
-                // Вариант 1: берем первую доступную озвучку
-                selectedVoice = (Folder) episodeFolder.children.get(0);
-                // Вариант 2: пропускаем серию
-                // continue;
-            }
+            if (selectedVoice == null) continue;
+            if (selectedVoice.children.size() <= selectedQualityIndex) continue;
 
-            if (selectedVoice != null && selectedVoice.children.size() > selectedIndexPath.get(INDEX_QUALITY)) {
-                File selectedQuality = (File) selectedVoice.children.get(selectedIndexPath.get(INDEX_QUALITY));
+            File selectedQuality = (File) selectedVoice.children.get(selectedQualityIndex);
 
-                List<Integer> episodeIndexPath = new ArrayList<>(selectedIndexPath);
-                episodeIndexPath.set(INDEX_EPISODES, episodeIndex);
+            String idPosition = PositionStorage.serialKey(
+                    filmDetails.getKinopoiskId(),
+                    selectedIndexPath.get(INDEX_SEASON),
+                    episodeIndex
+            );
 
-                MediaItem mediaItem = createMediaItem(
-                        PlayerLaunchData.getIndexPathKey(episodeIndexPath),
-                        episodeIndexPath,
-                        selectedQuality.videoUrl
-                );
-                mediaItems.add(mediaItem);
+            List<Integer> episodeIndexPath = new ArrayList<>(selectedIndexPath);
+            episodeIndexPath.set(INDEX_EPISODES, episodeIndex);
+
+            MediaItem mediaItem = createMediaItem(idPosition, episodeIndexPath, selectedQuality.videoUrl);
+            mediaItems.add(mediaItem);
+
+            if (episodeIndex == selectedEpisodeIndex) {
+                targetPlaylistIndex = mediaItems.size() - 1;
             }
         }
 
         return mediaItems;
     }
 
-    private void restorePositionForCurrentEpisode(int episodeIndex) {
-        if (player == null || player.getMediaItemCount() <= episodeIndex) {
-            return;
-        }
+    private void restorePositionForCurrentEpisode(int playlistIndex) {
+        if (player == null || player.getMediaItemCount() <= playlistIndex) return;
 
-        MediaItem mediaItem = player.getMediaItemAt(episodeIndex);
-        if (mediaItem == null) {
-            return;
-        }
+        MediaItem mediaItem = player.getMediaItemAt(playlistIndex);
+        if (mediaItem == null) return;
 
-        String key = mediaItem.mediaId;
-        Long savedPosition = savedPositionsMap.get(key);
-
-        if (savedPosition != null && savedPosition > 0) {
-            player.seekTo(episodeIndex, savedPosition);
-        }
-    }
-
-    private void restorePositionForMovie() {
-        if (player == null) return;
-
-        String key = String.valueOf(filmDetails.getKinopoiskId());
-        Long savedPosition = savedPositionsMap.get(key);
-
-        if (savedPosition != null && savedPosition > 0) {
-            player.seekTo(savedPosition);
-        }
+        final int index = playlistIndex;
+        positionStorage.getAsync(mediaItem.mediaId, wp -> {
+            if (player == null || wp == null) return;
+            if (player.getCurrentMediaItemIndex() != index) return;
+            if (wp.getPosition() > 0) {
+                player.seekTo(index, wp.getPosition());
+            }
+        });
     }
 
     private void setupSerialAnalyticsListener() {
@@ -176,64 +170,151 @@ public class HDVBStrategy extends BaseStrategy {
             @Override
             public void onMediaItemTransition(EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
                 AnalyticsListener.super.onMediaItemTransition(eventTime, mediaItem, reason);
+                if (player == null) return;
 
-                if (player != null) {
-                    saveCurrentPositionForEpisode();
-                    int currentIndex = player.getCurrentMediaItemIndex();
-                    restorePositionForCurrentEpisode(currentIndex);
-                    loadDirectVideoUrlForCurrentItem();
-                }
+                int currentIndex = player.getCurrentMediaItemIndex();
+                restorePositionForCurrentEpisode(currentIndex);
+                loadDirectVideoUrlForCurrentItem();
             }
         };
         player.addAnalyticsListener(analyticsListener);
     }
 
-    private void saveCurrentPositionForEpisode() {
-        if (player == null || player.getCurrentMediaItem() == null) return;
+    // ===================== MOVIE =====================
 
-        String key = player.getCurrentMediaItem().mediaId;
-        long position = player.getCurrentPosition();
+    @Override
+    protected void setupMoviePlayback() {
+        File startingFile = findFileByPath(launchData.getSelectedIndexPath());
+        if (startingFile == null) {
+            showToast("Не удалось найти файл для воспроизведения");
+            return;
+        }
 
-        savedPositionsMap.put(key, position);
+        String idPosition = PositionStorage.movieKey(filmDetails.getKinopoiskId());
 
-        executorService.execute(() -> {
-            // Сохранение в базу данных
-            savePositionToDatabase(key, position);
+        MediaItem mediaItem = createMediaItem(
+                idPosition,
+                launchData.getSelectedIndexPath(),
+                startingFile.videoUrl
+        );
+
+        player.setMediaItems(List.of(mediaItem));
+        restorePositionForMovie();
+        updateFilmViewStatus();
+
+        player.prepare();
+        player.play();
+
+        loadDirectVideoUrlForCurrentItem();
+        mainHandler.postDelayed(saveTick, 5000);
+    }
+
+    private void restorePositionForMovie() {
+        if (player == null) return;
+
+        positionStorage.getAsync(PositionStorage.movieKey(filmDetails.getKinopoiskId()), wp -> {
+            if (player == null || wp == null) return;
+            if (wp.getPosition() > 0) {
+                player.seekTo(wp.getPosition());
+            }
         });
     }
 
+    // ===================== SAVE =====================
+
+    private void saveCurrentPosition() {
+        if (player == null || player.getCurrentMediaItem() == null) return;
+
+        MediaItem item = player.getCurrentMediaItem();
+        if (item.localConfiguration == null) return;
+
+        long position = player.getCurrentPosition();
+        if (position <= 0) return;
+
+        int season = -1;
+        int episode = -1;
+        int voice = -1;
+        int quality = -1;
+
+        Object tag = item.localConfiguration.tag;
+        if (tag instanceof List<?>) {
+            @SuppressWarnings("unchecked")
+            List<Integer> path = (List<Integer>) tag;
+
+            if (filmDetails.isSerial()) {
+                // [balancer, season, episode, voice, quality]
+                if (path.size() >= 5) {
+                    season = path.get(INDEX_SEASON);
+                    episode = path.get(INDEX_EPISODES);
+                    voice = path.get(INDEX_VOICE);
+                    quality = path.get(INDEX_QUALITY);
+                }
+            } else {
+                // [balancer, voice, quality]
+                if (path.size() >= 3) {
+                    voice = path.get(1);
+                    quality = path.get(2);
+                }
+            }
+        }
+
+        positionStorage.save(
+                filmDetails.getKinopoiskId(),
+                BALANCER_NAME,
+                item.mediaId,
+                season,
+                episode,
+                voice,
+                quality,
+                position
+        );
+    }
+
+    // ===================== VIDEO URL =====================
+
     private void loadDirectVideoUrlForCurrentItem() {
         if (player == null || player.getCurrentMediaItem() == null) return;
+
         MediaItem currentItem = player.getCurrentMediaItem();
         if (currentItem.localConfiguration == null) return;
+
         String videoData = currentItem.localConfiguration.uri.toString();
         String mediaId = currentItem.mediaId;
         Object tag = currentItem.localConfiguration.tag;
+
         executorService.execute(() -> {
             String urlVideo = getVideoUrl(videoData);
+            if (!isValidUrl(urlVideo)) return;
 
-            if (isValidUrl(urlVideo)) {
-                MediaItem newMediaItem = createMediaItem(mediaId, tag, urlVideo);
+            MediaItem newMediaItem = createMediaItem(mediaId, tag, urlVideo);
 
-                mainHandler.post(() -> {
-                    if (player == null) return;
+            mainHandler.post(() -> {
+                if (player == null) return;
 
-                    int currentIndex = player.getCurrentMediaItemIndex();
-                    if (currentIndex >= 0) {
-                        long currentPosition = player.getCurrentPosition();
-                        player.replaceMediaItem(currentIndex, newMediaItem);
-                        player.seekTo(currentIndex, currentPosition);
+                int currentIndex = findMediaItemIndexById(mediaId);
+                if (currentIndex < 0) return;
 
-                        if (!player.isPlaying()) {
-                            player.prepare();
-                            player.play();
-                        }
-                    }
-                });
-            }
+                long currentPosition = player.getCurrentPosition();
+                player.replaceMediaItem(currentIndex, newMediaItem);
+                player.seekTo(currentIndex, currentPosition);
+
+                if (!player.isPlaying()) {
+                    player.prepare();
+                    player.play();
+                }
+            });
         });
+    }
 
-
+    private int findMediaItemIndexById(String mediaId) {
+        if (player == null) return -1;
+        for (int i = 0; i < player.getMediaItemCount(); i++) {
+            MediaItem item = player.getMediaItemAt(i);
+            if (item != null && mediaId.equals(item.mediaId)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -241,17 +322,15 @@ public class HDVBStrategy extends BaseStrategy {
         return HDVB.getFileSerial(videoData);
     }
 
+    // ===================== HELPERS =====================
+
     private File findFileByPath(List<Integer> path) {
-        if (path == null || path.isEmpty() || launchData == null) {
-            return null;
-        }
+        if (path == null || path.isEmpty() || launchData == null) return null;
 
         try {
             Item currentItem = launchData.getRootFolders().get(path.get(0));
             for (int i = 1; i < path.size(); i++) {
-                if (!(currentItem instanceof Folder)) {
-                    return null;
-                }
+                if (!(currentItem instanceof Folder)) return null;
                 currentItem = ((Folder) currentItem).children.get(path.get(i));
             }
             return currentItem instanceof File ? (File) currentItem : null;
@@ -260,31 +339,28 @@ public class HDVBStrategy extends BaseStrategy {
         }
     }
 
-    private void updateFilmViewStatus(boolean isStartView) {
+    private void updateFilmViewStatus() {
         if (filmDetails == null) return;
-
         executorService.execute(() -> {
-            // Обновление статуса просмотра в базе данных
-            // Здесь нужно реализовать сохранение в БД
+            // Обновление статуса просмотра в БД (если понадобится).
         });
-    }
-
-    private void savePositionToDatabase(String key, long position) {
-        // Реализация сохранения позиции в БД
-        // Используй - filmDetailsDao
     }
 
     @Override
     public String getPositionKey(ExoPlayer player, int kinopoiskId) {
-        if (isSerial && player.getCurrentMediaItem() != null) {
-            return player.getCurrentMediaItem().mediaId;
-        } else {
-            return String.valueOf(kinopoiskId);
+        if (player == null || player.getCurrentMediaItem() == null) {
+            return PositionStorage.movieKey(kinopoiskId);
         }
+        return player.getCurrentMediaItem().mediaId;
     }
 
     @Override
     public void cleanup(ExoPlayer player) {
+        if (mainHandler != null) {
+            mainHandler.removeCallbacks(saveTick);
+        }
+        saveCurrentPosition();
+
         if (analyticsListener != null && player != null) {
             player.removeAnalyticsListener(analyticsListener);
         }

@@ -217,49 +217,4 @@ public class MainActivity extends AppCompatActivity {
     public boolean onSupportNavigateUp() {
         return navController.navigateUp() || super.onSupportNavigateUp();
     }
-
-
-
-    // TODO: Доделать отслеживание новых событий в фильме
-    // Не доделанный код проверки изменений данных в базе на фильм.
-    private void runContentStructureTracker() {
-        ContentStructureTracker tracker = new ContentStructureTracker(this);
-        // Получаем список ID которые отслеживаются.
-        List<FilmDetails> films = filmDetailsDao.getFilmByObserveVoice().getValue();
-        int kinopoiskId = films.get(0).getKinopoiskId();
-        boolean isSerial = films.get(0).isSerial();
-        AllohaApiClient allohaApiClient = new AllohaApiClient("4cd98e08f1e1f0273692e35b16b690");
-        getMainExecutor().execute(() -> {
-            try {
-                allohaApiClient.fetch(kinopoiskId, new SelectorVoiceAdapter.AdapterData.AdapterDataCallback() {
-                    @Override
-                    public void onDataReady(SelectorVoiceAdapter.AdapterData data) {
-                        boolean hasChanged = tracker.hasStructureChanged(String.valueOf(kinopoiskId), isSerial, data.getRootFolders());
-                        if (hasChanged) {
-                            MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(getApplicationContext());
-                            alert.setTitle("Найдены изменения в Фильме/Сериале");
-                            alert.setPositiveButton("Перейти", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    Bundle bundle = new Bundle();
-                                    bundle.putInt("kinopoiskId", kinopoiskId);
-                                    navController.navigate(R.id.action_navigation_home_to_filmDetailsFragment, bundle);
-                                }
-                            });
-                            alert.show();
-                        }
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        Toast.makeText(MainActivity.this, "ERROR: " + error, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-
-    }
 }

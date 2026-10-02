@@ -12,6 +12,7 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.analytics.AnalyticsListener;
 
 import com.alaka_ala.florafilm.data.media.PlayerLaunchData;
+import com.alaka_ala.unofficial_kinopoisk_api.api.PositionStorage;
 import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter.File;
 import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter.Folder;
 import com.alaka_ala.florafilm.fragments.filmDetails.SelectorVoiceAdapter.Item;
@@ -31,6 +32,7 @@ public class AllohaStrategy extends BaseStrategy {
 
     private static final String TAG = "AllohaStrategy";
     private static final String PROXY_URL = "http://127.0.0.1:8080/master.m3u8";
+    private static final String BALANCER_NAME = "ALLOHA";
 
     private final java.util.concurrent.ConcurrentHashMap<String, String> activeHeaders =
             new java.util.concurrent.ConcurrentHashMap<>();
@@ -42,27 +44,39 @@ public class AllohaStrategy extends BaseStrategy {
     private AllohaParserJava parser;
     private AllohaStreaming streaming;
 
-
     private boolean isSerial;
     private Context context;
+    private PositionStorage positionStorage;
     private HlsProxyServerJava proxyServer;
     private String currentIframeUrl;
     private boolean isPlaying = false;
+
+    private int targetPlaylistIndex = 0;
+
+    private final Runnable saveTick = new Runnable() {
+        @Override
+        public void run() {
+            saveCurrentPosition();
+            if (mainHandler != null) {
+                mainHandler.postDelayed(this, 5000);
+            }
+        }
+    };
 
     @Override
     public void setupPlayback(Context context,
                               ExoPlayer player,
                               PlayerLaunchData launchData,
                               FilmDetails filmDetails,
-                              Map<String, Long> savedPositionsMap,
+                              PositionStorage positionStorage,
                               ExecutorService executorService,
                               Handler mainHandler) {
         this.isSerial = filmDetails.isSerial();
         this.context = context;
+        this.positionStorage = positionStorage;
         this.streaming = new AllohaStreaming(context, mainHandler, new AllohaStreaming.Callback() {
             @Override
             public void onQualities(Map<String, AllohaBnsiParserJava.QualityUrls> qualities) {
-                // keep for fallback; current implementation uses atomic ref
                 qualityUrlsRef.set(qualities);
             }
 
@@ -79,8 +93,10 @@ public class AllohaStrategy extends BaseStrategy {
                 mainHandler.post(() -> showToast("Alloha: " + error));
             }
         });
-        super.setupPlayback(context, player, launchData, filmDetails, savedPositionsMap, executorService, mainHandler);
+        super.setupPlayback(context, player, launchData, filmDetails, positionStorage, executorService, mainHandler);
     }
+
+    // ===================== SERIAL =====================
 
     @Override
     protected void setupSerialPlayback() {
@@ -91,12 +107,10 @@ public class AllohaStrategy extends BaseStrategy {
             return;
         }
 
-        player.setMediaItems(mediaItems, launchData.getSelectedIndexPath().get(INDEX_EPISODES), 0);
-        int startEpisodeIndex = launchData.getSelectedIndexPath().get(INDEX_EPISODES);
-        restorePositionForCurrentEpisode(startEpisodeIndex);
-        updateFilmViewStatus(true);
+        player.setMediaItems(mediaItems, targetPlaylistIndex, 0);
+        restorePositionForCurrentEpisode(targetPlaylistIndex);
+        updateFilmViewStatus();
 
-        // Слушатель для смены серий и обработки ошибок
         player.addAnalyticsListener(new AnalyticsListener() {
             @Override
             public void onPlayerError(EventTime eventTime, PlaybackException error) {
@@ -108,117 +122,51 @@ public class AllohaStrategy extends BaseStrategy {
                         (error.getMessage() != null && error.getMessage().contains("403"));
 
                 if (isNetworkOrParseError) {
-                    // ШАГ 1: Мгновенно пробуем переключиться на резервную ссылку (без перезагрузки WebView)
                     if (streaming != null) {
                         streaming.tryFallbackOnce();
+                        streaming.forceRestart("403_fallback_triggered");
                     } else {
                         tryFallbackFromBnsi();
-                    }
-
-                    // ШАГ 2: Если кулдаун уже прошел, запускаем полный перезапуск сессии для получения свежих токенов
-                    // (forceRestart сам проверит флаг restartInFlight и не сделает этого, если уже идет)
-                    if (streaming != null) {
-                        streaming.forceRestart("403_fallback_triggered");
                     }
                 }
             }
 
             @Override
             public void onMediaItemTransition(EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
-                if (player != null) {
-                    saveCurrentPositionForEpisode();
-                    loadCurrentEpisode();
-                }
+                if (player == null) return;
+                int currentIndex = player.getCurrentMediaItemIndex();
+                restorePositionForCurrentEpisode(currentIndex);
+                loadCurrentEpisode();
             }
         });
 
-        // Загружаем первую серию
         loadCurrentEpisode();
 
         player.prepare();
         player.play();
-    }
 
-    @Override
-    protected void setupMoviePlayback() {
-        File selectedFile = findFileByPath(launchData.getSelectedIndexPath());
-        if (selectedFile == null) {
-            showToast("Не удалось найти файл для воспроизведения");
-            return;
-        }
-
-        String mediaId = String.valueOf(filmDetails.getKinopoiskId());
-
-        MediaItem mediaItem = new MediaItem.Builder()
-                .setMediaId(mediaId)
-                .setUri(PROXY_URL)
-                .setTag(selectedFile)
-                .build();
-
-        player.setMediaItems(List.of(mediaItem));
-        // Слушатель для смены серий и обработки ошибок
-        player.addAnalyticsListener(new AnalyticsListener() {
-            @Override
-            public void onPlayerError(EventTime eventTime, PlaybackException error) {
-                AnalyticsListener.super.onPlayerError(eventTime, error);
-                Log.e(TAG, "Player error: " + error.errorCode + " | " + error.getMessage());
-
-                boolean isNetworkOrParseError = error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
-                        error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
-                        (error.getMessage() != null && error.getMessage().contains("403"));
-
-                if (isNetworkOrParseError) {
-                    // ШАГ 1: Мгновенно пробуем переключиться на резервную ссылку (без перезагрузки WebView)
-                    if (streaming != null) {
-                        streaming.tryFallbackOnce();
-                    } else {
-                        tryFallbackFromBnsi();
-                    }
-
-                    // ШАГ 2: Если кулдаун уже прошел, запускаем полный перезапуск сессии для получения свежих токенов
-                    // (forceRestart сам проверит флаг restartInFlight и не сделает этого, если уже идет)
-                    if (streaming != null) {
-                        streaming.forceRestart("403_fallback_triggered");
-                    }
-                }
-            }
-
-            @Override
-            public void onMediaItemTransition(EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
-                if (player != null) {
-                    saveCurrentPositionForEpisode();
-                    loadCurrentEpisode();
-                }
-            }
-        });
-        restorePositionForMovie();
-        updateFilmViewStatus(true);
-
-        loadVideo(selectedFile.videoUrl);
-
-        player.prepare();
-        player.play();
+        mainHandler.postDelayed(saveTick, 5000);
     }
 
     private List<MediaItem> createSerialMediaItems() {
         List<MediaItem> mediaItems = new ArrayList<>();
         List<Integer> selectedIndexPath = launchData.getSelectedIndexPath();
 
-        // Получаем выбранный балансер
-        Folder selectedBalancer = launchData.getRootFolders().size() == 1 ? launchData.getRootFolders().get(0) : launchData.getRootFolders().get(selectedIndexPath.get(INDEX_BALANCER));
-        if (selectedBalancer == null) {
-            return mediaItems;
-        }
+        Folder selectedBalancer = launchData.getRootFolders().size() == 1
+                ? launchData.getRootFolders().get(0)
+                : launchData.getRootFolders().get(selectedIndexPath.get(INDEX_BALANCER));
+        if (selectedBalancer == null) return mediaItems;
 
-        // Получаем выбранную серию
         Item selectedSeason = selectedBalancer.children.get(selectedIndexPath.get(INDEX_SEASON));
-        if (!(selectedSeason instanceof Folder)) {
-            return mediaItems;
-        }
+        if (!(selectedSeason instanceof Folder)) return mediaItems;
 
-        // Получаем выбранную озвучку
-        Folder firstEpisode = (Folder) ((Folder) selectedSeason).children.get(selectedIndexPath.get(INDEX_EPISODES));
-        Folder selectedVoiceTemplate = (Folder) firstEpisode.children.get(selectedIndexPath.get(INDEX_VOICE));
+        int selectedEpisodeIndex = selectedIndexPath.get(INDEX_EPISODES);
+        int selectedVoiceIndex = selectedIndexPath.get(INDEX_VOICE);
+        int selectedQualityIndex = selectedIndexPath.get(INDEX_QUALITY);
+
+        Folder selectedEpisodeFolder = (Folder) ((Folder) selectedSeason).children.get(selectedEpisodeIndex);
+        if (selectedEpisodeFolder.children.size() <= selectedVoiceIndex) return mediaItems;
+        Folder selectedVoiceTemplate = (Folder) selectedEpisodeFolder.children.get(selectedVoiceIndex);
         String selectedVoiceTitle = selectedVoiceTemplate.name;
 
         Folder seasonFolder = (Folder) selectedSeason;
@@ -229,7 +177,6 @@ public class AllohaStrategy extends BaseStrategy {
 
             Folder episodeFolder = (Folder) episodeItem;
 
-            // Ищем озвучку
             Folder selectedVoice = null;
             for (Item voiceItem : episodeFolder.children) {
                 if (voiceItem instanceof Folder) {
@@ -241,31 +188,171 @@ public class AllohaStrategy extends BaseStrategy {
                 }
             }
 
-            if (selectedVoice == null && !episodeFolder.children.isEmpty()) {
-                selectedVoice = (Folder) episodeFolder.children.get(0);
-            }
+            if (selectedVoice == null) continue;
+            if (selectedVoice.children.size() <= selectedQualityIndex) continue;
 
-            if (selectedVoice != null && selectedVoice.children.size() > selectedIndexPath.get(INDEX_QUALITY)) {
-                File selectedQuality = (File) selectedVoice.children.get(selectedIndexPath.get(INDEX_QUALITY));
+            File selectedQuality = (File) selectedVoice.children.get(selectedQualityIndex);
+            if (selectedQuality == null) continue;
 
-                if (selectedQuality != null) {
-                    List<Integer> episodeIndexPath = new ArrayList<>(selectedIndexPath);
-                    episodeIndexPath.set(INDEX_EPISODES, episodeIndex);
+            String idPosition = PositionStorage.serialKey(
+                    filmDetails.getKinopoiskId(),
+                    selectedIndexPath.get(INDEX_SEASON),
+                    episodeIndex
+            );
 
-                    String mediaId = PlayerLaunchData.getIndexPathKey(episodeIndexPath);
+            List<Integer> episodeIndexPath = new ArrayList<>(selectedIndexPath);
+            episodeIndexPath.set(INDEX_EPISODES, episodeIndex);
 
-                    MediaItem mediaItem = new MediaItem.Builder()
-                            .setMediaId(mediaId)
-                            .setUri(PROXY_URL)
-                            .setTag(selectedQuality)
-                            .build();
-                    mediaItems.add(mediaItem);
-                }
+            MediaItem mediaItem = new MediaItem.Builder()
+                    .setMediaId(idPosition)
+                    .setUri(PROXY_URL)
+                    .setTag(selectedQuality)
+                    .build();
+
+            mediaItems.add(mediaItem);
+
+            if (episodeIndex == selectedEpisodeIndex) {
+                targetPlaylistIndex = mediaItems.size() - 1;
             }
         }
 
         return mediaItems;
     }
+
+    private void restorePositionForCurrentEpisode(int playlistIndex) {
+        if (player == null || player.getMediaItemCount() <= playlistIndex) return;
+
+        MediaItem mediaItem = player.getMediaItemAt(playlistIndex);
+        if (mediaItem == null) return;
+
+        final int index = playlistIndex;
+        positionStorage.getAsync(mediaItem.mediaId, wp -> {
+            if (player == null || wp == null) return;
+            if (player.getCurrentMediaItemIndex() != index) return;
+            if (wp.getPosition() > 0L) {
+                player.seekTo(index, wp.getPosition());
+            }
+        });
+    }
+
+    // ===================== MOVIE =====================
+
+    @Override
+    protected void setupMoviePlayback() {
+        File selectedFile = findFileByPath(launchData.getSelectedIndexPath());
+        if (selectedFile == null) {
+            showToast("Не удалось найти файл для воспроизведения");
+            return;
+        }
+
+        String mediaId = PositionStorage.movieKey(filmDetails.getKinopoiskId());
+
+        MediaItem mediaItem = new MediaItem.Builder()
+                .setMediaId(mediaId)
+                .setUri(PROXY_URL)
+                .setTag(selectedFile)
+                .build();
+
+        player.setMediaItems(List.of(mediaItem));
+
+        player.addAnalyticsListener(new AnalyticsListener() {
+            @Override
+            public void onPlayerError(EventTime eventTime, PlaybackException error) {
+                AnalyticsListener.super.onPlayerError(eventTime, error);
+                Log.e(TAG, "Player error: " + error.errorCode + " | " + error.getMessage());
+
+                boolean isNetworkOrParseError = error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+                        error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                        (error.getMessage() != null && error.getMessage().contains("403"));
+
+                if (isNetworkOrParseError) {
+                    if (streaming != null) {
+                        streaming.tryFallbackOnce();
+                        streaming.forceRestart("403_fallback_triggered");
+                    } else {
+                        tryFallbackFromBnsi();
+                    }
+                }
+            }
+
+            @Override
+            public void onMediaItemTransition(EventTime eventTime, @Nullable MediaItem mediaItem, int reason) {
+                if (player == null) return;
+                restorePositionForMovie();
+                loadCurrentEpisode();
+            }
+        });
+
+        restorePositionForMovie();
+        updateFilmViewStatus();
+
+        loadVideo(selectedFile.videoUrl);
+
+        player.prepare();
+        player.play();
+
+        mainHandler.postDelayed(saveTick, 5000);
+    }
+
+    private void restorePositionForMovie() {
+        if (player == null) return;
+
+        positionStorage.getAsync(PositionStorage.movieKey(filmDetails.getKinopoiskId()), wp -> {
+            if (player == null || wp == null) return;
+            if (wp.getPosition() > 0) {
+                player.seekTo(wp.getPosition());
+            }
+        });
+    }
+
+    // ===================== SAVE =====================
+
+    private void saveCurrentPosition() {
+        if (player == null || player.getCurrentMediaItem() == null) return;
+
+        MediaItem item = player.getCurrentMediaItem();
+        long position = player.getCurrentPosition();
+        if (position <= 0) return;
+
+        int season = -1;
+        int episode = -1;
+        int voice = -1;
+        int quality = -1;
+
+        if (item.localConfiguration != null && item.localConfiguration.tag instanceof File) {
+            File f = (File) item.localConfiguration.tag;
+            List<Integer> path = f.getIndexPath();
+
+            if (filmDetails.isSerial()) {
+                // [balancer, season, episode, voice, quality]
+                if (path != null && path.size() >= 5) {
+                    season = path.get(INDEX_SEASON);
+                    episode = path.get(INDEX_EPISODES);
+                    voice = path.get(INDEX_VOICE);
+                    quality = path.get(INDEX_QUALITY);
+                }
+            } else {
+                // [balancer, voice, quality]
+                if (path != null && path.size() >= 3) {
+                    voice = path.get(1);
+                    quality = path.get(2);
+                }
+            }
+        }
+
+        positionStorage.save(
+                filmDetails.getKinopoiskId(),
+                BALANCER_NAME,
+                item.mediaId,
+                season,
+                episode,
+                voice,
+                quality,
+                position
+        );
+    }
+
+    // ===================== VIDEO LOADING =====================
 
     private void loadCurrentEpisode() {
         if (player == null || player.getCurrentMediaItem() == null) return;
@@ -293,21 +380,17 @@ public class AllohaStrategy extends BaseStrategy {
         isPlaying = false;
         stopProxy();
 
-        // Remember current chosen quality key for fallback (use existing selection index)
         try {
             int qIndex = launchData.getSelectedIndexPath().get(INDEX_QUALITY);
-            // In your adapter, quality label is stored in File.title. We'll map it later when needed.
-            // Here we just try common set: 2160/1440/1080/720/480/360 if present.
             String[] ordered = new String[]{"2160", "1440", "1080", "720", "480", "360"};
-            if (qIndex >= 0 && qIndex < ordered.length && streaming != null) streaming.setSelectedQualityKey(ordered[qIndex]);
+            if (qIndex >= 0 && qIndex < ordered.length && streaming != null) {
+                streaming.setSelectedQualityKey(ordered[qIndex]);
+            }
         } catch (Exception ignored) {}
 
         if (streaming != null) {
-            // streaming.start() internally switches to main thread for WebView,
-            // but calling from main keeps ordering simpler.
             mainHandler.post(() -> streaming.start(iframeUrl));
         } else {
-            // fallback to old implementation if streaming not initialized
             parser = new AllohaParserJava(context);
             executorService.execute(() -> parser.parse(iframeUrl, new AllohaParserJava.Callback() {
                 @Override public void onHlsLinksReceived(String json, Map<String, String> extraHeaders) {}
@@ -322,12 +405,8 @@ public class AllohaStrategy extends BaseStrategy {
         Map<String, AllohaBnsiParserJava.QualityUrls> map = qualityUrlsRef.get();
         if (map == null || map.isEmpty() || proxyServer == null) return;
 
-        // Можно выбрать нужное качество по имени, здесь берем первое
-        AllohaBnsiParserJava.QualityUrls q =
-                map.values().iterator().next();
-
-        String fallbackUrl =
-                AllohaBnsiParserJava.pickWithFallback(q, true);
+        AllohaBnsiParserJava.QualityUrls q = map.values().iterator().next();
+        String fallbackUrl = AllohaBnsiParserJava.pickWithFallback(q, true);
 
         if (fallbackUrl != null && !fallbackUrl.isEmpty()) {
             proxyServer.updateMasterUrl(fallbackUrl);
@@ -344,42 +423,6 @@ public class AllohaStrategy extends BaseStrategy {
 
         if (streaming != null) streaming.stop();
         if (parser != null) { parser.release(); parser = null; }
-    }
-
-    private void saveCurrentPositionForEpisode() {
-        if (player == null || player.getCurrentMediaItem() == null) return;
-
-        String key = player.getCurrentMediaItem().mediaId;
-        long position = player.getCurrentPosition();
-        savedPositionsMap.put(key, position);
-
-        executorService.execute(() -> savePositionToDatabase(key, position));
-    }
-
-    private void restorePositionForCurrentEpisode(int episodeIndex) {
-        if (player == null || player.getMediaItemCount() <= episodeIndex) return;
-
-        MediaItem mediaItem = player.getMediaItemAt(episodeIndex);
-
-        if (mediaItem == null) return;
-
-        String key = mediaItem.mediaId;
-        Long savedPosition = savedPositionsMap.get(key);
-
-        if (savedPosition != null && savedPosition > 0L) {
-            player.seekTo(episodeIndex, savedPosition);
-        }
-    }
-
-    private void restorePositionForMovie() {
-        if (player == null) return;
-
-        String key = String.valueOf(filmDetails.getKinopoiskId());
-        Long savedPosition = savedPositionsMap.get(key);
-
-        if (savedPosition != null && savedPosition > 0) {
-            player.seekTo(savedPosition);
-        }
     }
 
     private File findFileByPath(List<Integer> path) {
@@ -404,22 +447,23 @@ public class AllohaStrategy extends BaseStrategy {
 
     @Override
     public String getPositionKey(ExoPlayer player, int kinopoiskId) {
-        if (isSerial && player.getCurrentMediaItem() != null) {
+        if (isSerial && player != null && player.getCurrentMediaItem() != null) {
             return player.getCurrentMediaItem().mediaId;
-        } else {
-            return String.valueOf(kinopoiskId);
         }
+        return PositionStorage.movieKey(kinopoiskId);
     }
 
     @Override
     public void cleanup(ExoPlayer player) {
+        if (mainHandler != null) {
+            mainHandler.removeCallbacks(saveTick);
+        }
+        saveCurrentPosition();
         stopProxy();
         super.cleanup(player);
     }
 
-    private void updateFilmViewStatus(boolean isStartView) {
-    }
-
-    private void savePositionToDatabase(String key, long position) {
+    private void updateFilmViewStatus() {
+        // Обновление статуса просмотра в БД (если понадобится).
     }
 }

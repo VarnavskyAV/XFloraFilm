@@ -6,6 +6,7 @@ import static android.view.View.VISIBLE;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.*;
 import android.widget.Toast;
 
@@ -18,6 +19,7 @@ import com.alaka_ala.florafilm.R;
 import com.alaka_ala.florafilm.databinding.FragmentFilmDetailsBinding;
 import com.alaka_ala.florafilm.activities.MainActivity;
 import com.alaka_ala.florafilm.data.media.PlayerLaunchData;
+import com.alaka_ala.unofficial_kinopoisk_api.api.PositionStorage;
 import com.alaka_ala.florafilm.utils.balancers.Balancer;
 import com.alaka_ala.florafilm.utils.balancers.alloha.AllohaApiClient;
 import com.alaka_ala.florafilm.utils.balancers.hdvb.HDVB;
@@ -28,11 +30,14 @@ import com.alaka_ala.unofficial_kinopoisk_api.models.*;
 import com.bumptech.glide.Glide;
 import com.google.android.material.chip.Chip;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FilmDetailsFragment extends Fragment {
+
+    private static final String TAG = "FilmDetailsResume";
 
     private FragmentFilmDetailsBinding binding;
     private FilmDetails filmDetails;
@@ -44,6 +49,8 @@ public class FilmDetailsFragment extends Fragment {
     private int totalBalancers = 0;
 
     private FilmDetailsDao dao;
+    private WatchPositionDao watchPositionDao;
+    private PositionStorage positionStorage;
     private KinopoiskApiClientV2 api;
 
     // ===================== LIFECYCLE =====================
@@ -56,6 +63,8 @@ public class FilmDetailsFragment extends Fragment {
 
         api = KinopoiskApiClientV2.getInstance();
         dao = KinopoiskDatabaseV2.getDatabase(getContext()).filmDetailsDao();
+        watchPositionDao = KinopoiskDatabaseV2.getDatabase(getContext()).watchPositionDao();
+        positionStorage = new PositionStorage(watchPositionDao, executor, new Handler(Looper.getMainLooper()));
 
         setupRecycler();
         loadFilmDetails();
@@ -77,23 +86,16 @@ public class FilmDetailsFragment extends Fragment {
         super.onCreateOptionsMenu(menu, inflater);
         menu.clear();
         if (filmDetails == null) {
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                onCreateOptionsMenu(menu, inflater);
-            }, 170);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> onCreateOptionsMenu(menu, inflater), 170);
             return;
         }
-
 
         if (filmDetails.isBookmark()) {
             menu.add("Удалить из избранного").setIcon(R.drawable.bookmark_added).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
         } else {
             menu.add("Добавить в избранное").setIcon(R.drawable.bookmark_add).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
-        if (filmDetails.isObserveUpdateVoice()) {
-            menu.add("Не уведомлять о новых озвучках").setIcon(R.drawable.voice).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        } else {
-            menu.add("Уведомить о новых озвучках").setIcon(R.drawable.voice2).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        }
+
     }
 
     @Override
@@ -106,15 +108,9 @@ public class FilmDetailsFragment extends Fragment {
             case "Удалить из избранного":
                 filmDetails.setIsBookmark(false);
                 break;
-            case "Уведомить о новых озвучках":
-                filmDetails.setObserveUpdateVoice(true);
-                break;
-            case "Не уведомлять о новых озвучках":
-                filmDetails.setObserveUpdateVoice(false);
-                break;
         }
         executor.execute(() -> dao.insertAndPreservePositions(filmDetails));
-        getActivity().invalidateOptionsMenu(); // Перерисовываем меню
+        requireActivity().invalidateOptionsMenu();
         return super.onOptionsItemSelected(item);
     }
 
@@ -125,101 +121,125 @@ public class FilmDetailsFragment extends Fragment {
         PlayerLaunchData launchData;
     }
 
-    private ResumeData buildResumeData() {
+    private ResumeData buildResumeData(WatchPosition last) {
         if (filmDetails == null) return null;
-
-        List<Integer> path = filmDetails.getSelectedIndexPath();
-        if (path == null || path.isEmpty()) return null;
-
         if (adapter == null || adapter.getRootFolders().isEmpty()) return null;
+        if (last == null) return null;
 
-        int balancer = path.get(0);
-        if (balancer >= adapter.getRootFolders().size()) return null;
+        int balancerIndex = balancerIndexByName(last.getBalancer());
+        if (balancerIndex < 0 || balancerIndex >= adapter.getRootFolders().size()) {
+            Log.d(TAG, "balancerIndex invalid: " + balancerIndex + " for " + last.getBalancer());
+            return null;
+        }
 
-        // Проверка активности балансера
-        if (balancer == Balancer.ALLOHA_ID &&
+        if (balancerIndex == Balancer.ALLOHA_ID &&
                 !AppPreferences.CDNSettings.Alloha.isAllohaActive(getContext())) return null;
-
-        if (balancer == Balancer.HDVB_ID &&
+        if (balancerIndex == Balancer.HDVB_ID &&
                 !AppPreferences.CDNSettings.HDVB.isHDVBActive(getContext())) return null;
 
-        SelectorVoiceAdapter.Folder balancerFolder = adapter.getRootFolders().get(balancer);
+        SelectorVoiceAdapter.Folder balancerFolder = adapter.getRootFolders().get(balancerIndex);
+
+        List<Integer> path = new ArrayList<>();
+        path.add(balancerIndex);
 
         try {
             ResumeData data = new ResumeData();
 
             if (filmDetails.isSerial()) {
-                if (path.size() < 5) return null;
+                int season = last.getLastSeason();
+                int episode = last.getLastEpisode();
+                int voice = last.getVoice();
+                int quality = last.getQuality();
 
-                int season = path.get(1);
-                int episode = path.get(2);
-                int voice = path.get(3);
-                int quality = path.get(4);
+                if (season < 0 || episode < 0 || voice < 0 || quality < 0) {
+                    Log.d(TAG, "serial invalid fields: s=" + season + " e=" + episode + " v=" + voice + " q=" + quality);
+                    return null;
+                }
+
+                path.add(season);
+                path.add(episode);
+                path.add(voice);
+                path.add(quality);
 
                 SelectorVoiceAdapter.Folder seasonFolder =
                         (SelectorVoiceAdapter.Folder) balancerFolder.children.get(season);
-
                 SelectorVoiceAdapter.Folder episodeFolder =
                         (SelectorVoiceAdapter.Folder) seasonFolder.children.get(episode);
-
                 SelectorVoiceAdapter.Folder voiceFolder =
                         (SelectorVoiceAdapter.Folder) episodeFolder.children.get(voice);
-
-                SelectorVoiceAdapter.File file =
-                        (SelectorVoiceAdapter.File) voiceFolder.children.get(quality);
 
                 data.title = balancerFolder.name + " / "
                         + seasonFolder.name + " / "
                         + episodeFolder.name;
 
-                data.launchData = new PlayerLaunchData(balancer, adapter.getRootFolders(), path);
-
             } else {
-                if (path.size() < 3) return null;
+                int voice = last.getVoice();
+                int quality = last.getQuality();
 
-                int voice = path.get(1);
-                int quality = path.get(2);
+                if (voice < 0 || quality < 0) {
+                    Log.d(TAG, "movie invalid fields: v=" + voice + " q=" + quality);
+                    return null;
+                }
+
+                path.add(voice);
+                path.add(quality);
 
                 SelectorVoiceAdapter.Folder voiceFolder =
                         (SelectorVoiceAdapter.Folder) balancerFolder.children.get(voice);
-
                 SelectorVoiceAdapter.File file =
                         (SelectorVoiceAdapter.File) voiceFolder.children.get(quality);
 
                 data.title = balancerFolder.name + " / "
                         + voiceFolder.name + " / "
                         + file.name;
-
-                data.launchData = new PlayerLaunchData(balancer, adapter.getRootFolders(), path);
             }
 
+            data.launchData = new PlayerLaunchData(balancerIndex, adapter.getRootFolders(), path);
             return data;
 
         } catch (Exception e) {
+            Log.e(TAG, "buildResumeData error", e);
             return null;
         }
     }
 
+    private int balancerIndexByName(String name) {
+        if (name == null) return -1;
+        if (name.equalsIgnoreCase("HDVB")) return Balancer.HDVB_ID;
+        if (name.equalsIgnoreCase("ALLOHA")) return Balancer.ALLOHA_ID;
+        return -1;
+    }
+
     private void tryShowResumeButton() {
-        if (getContext() == null) return;
-        ResumeData data = buildResumeData();
+        if (getContext() == null || filmDetails == null) return;
 
-        if (data == null) {
-            binding.resumeButtonRootLayout.setVisibility(GONE);
-            return;
+        PositionStorage.PositionCallback callback = last -> {
+            if (binding == null) return;
+            ResumeData data = buildResumeData(last);
+
+            if (data == null) {
+                binding.resumeButtonRootLayout.setVisibility(GONE);
+                return;
+            }
+
+            binding.resumeButtonRootLayout.setVisibility(VISIBLE);
+            binding.textViewResumeWatch.setText(data.title);
+
+            binding.buttonResumeWatch.setOnClickListener(v -> {
+                Bundle bundle = new Bundle();
+                bundle.putSerializable("playerLaunchData", data.launchData);
+                bundle.putInt("kinopoiskId", kinopoiskId);
+
+                Navigation.findNavController(binding.getRoot())
+                        .navigate(R.id.action_filmDetailsFragment_to_playerFragment, bundle);
+            });
+        };
+
+        if (filmDetails.isSerial()) {
+            positionStorage.getLastWatchedSerialAsync(kinopoiskId, callback);
+        } else {
+            positionStorage.getLastWatchedMovieAsync(kinopoiskId, callback);
         }
-
-        binding.resumeButtonRootLayout.setVisibility(VISIBLE);
-        binding.textViewResumeWatch.setText(data.title);
-
-        binding.buttonResumeWatch.setOnClickListener(v -> {
-            Bundle bundle = new Bundle();
-            bundle.putSerializable("playerLaunchData", data.launchData);
-            bundle.putInt("kinopoiskId", kinopoiskId);
-
-            Navigation.findNavController(binding.getRoot())
-                    .navigate(R.id.action_filmDetailsFragment_to_playerFragment, bundle);
-        });
     }
 
     // ===================== DATA =====================
@@ -359,7 +379,6 @@ public class FilmDetailsFragment extends Fragment {
                 addChip(country.getName(), "country", country.getName());
             }
         }
-
     }
 
     private void addChip(String text, String type, String data) {
